@@ -9,11 +9,12 @@ import { categoriesApi } from '../api/expenses'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const FREQ_LABELS = { weekly: 'Weekly', monthly: 'Monthly', quarterly: 'Quarterly' }
+const FREQ_LABELS = { weekly: 'Weekly', monthly: 'Monthly', quarterly: 'Quarterly', yearly: 'Yearly' }
 const FREQ_COLORS = {
-  weekly:    { bg: 'rgba(6,182,212,0.12)', text: '#22d3ee' },
-  monthly:   { bg: 'rgba(139,92,246,0.12)', text: '#a78bfa' },
-  quarterly: { bg: 'rgba(245,158,11,0.12)', text: '#fbbf24' },
+  weekly:    { bg: 'rgba(6,182,212,0.12)',   text: '#22d3ee' },
+  monthly:   { bg: 'rgba(139,92,246,0.12)',  text: '#a78bfa' },
+  quarterly: { bg: 'rgba(245,158,11,0.12)',  text: '#fbbf24' },
+  yearly:    { bg: 'rgba(16,185,129,0.12)',  text: '#34d399' },
 }
 const PAYMENT_METHODS = ['UPI', 'NET_BANKING', 'DEBIT_CARD', 'CREDIT_CARD', 'CASH']
 
@@ -157,6 +158,7 @@ function RecurringModal({ initial, categories, onClose, onSaved }) {
               <option value="weekly">Weekly</option>
               <option value="monthly">Monthly</option>
               <option value="quarterly">Quarterly</option>
+              <option value="yearly">Yearly</option>
             </select>
           </Field>
         </div>
@@ -167,7 +169,7 @@ function RecurringModal({ initial, categories, onClose, onSaved }) {
               onFocus={focusStyle} onBlur={blurStyle}
               value={form.next_due_date} onChange={set('next_due_date')} />
           </Field>
-          {(form.frequency === 'monthly' || form.frequency === 'quarterly') && (
+          {(form.frequency === 'monthly' || form.frequency === 'quarterly' || form.frequency === 'yearly') && (
             <Field label="Day of Month">
               <input type="number" min="1" max="28" className={inputClass} style={inputStyle}
                 onFocus={focusStyle} onBlur={blurStyle}
@@ -404,6 +406,7 @@ export default function RecurringPage() {
   const monthlyTotal = activeItems.reduce((sum, r) => {
     if (r.frequency === 'weekly')    return sum + r.amount * 4.33
     if (r.frequency === 'quarterly') return sum + r.amount / 3
+    if (r.frequency === 'yearly')    return sum + r.amount / 12
     return sum + r.amount
   }, 0)
   const dueCount = activeItems.filter(r => {

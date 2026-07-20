@@ -31,7 +31,7 @@ from app.models.user import User
 
 router = APIRouter(prefix="/recurring", tags=["recurring"])
 
-FREQUENCIES = {"weekly", "monthly", "quarterly"}
+FREQUENCIES = {"weekly", "monthly", "quarterly", "yearly"}
 
 
 # ── Schemas ───────────────────────────────────────────────────────────────────
@@ -112,6 +112,12 @@ def _advance_due_date(current: date, frequency: str, day_of_month: int | None) -
         dom = day_of_month or current.day
         dom = min(dom, calendar.monthrange(y, m)[1])
         return date(y, m, dom)
+
+    elif frequency == "yearly":
+        y = current.year + 1
+        dom = day_of_month or current.day
+        dom = min(dom, calendar.monthrange(y, current.month)[1])
+        return date(y, current.month, dom)
 
     return current + timedelta(days=30)     # fallback
 
