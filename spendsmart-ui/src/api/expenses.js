@@ -18,6 +18,9 @@ export const expensesApi = {
 
   restore: (id) =>
     client.post(`/expenses/${id}/restore`).then((r) => r.data),
+
+  bulkCategorize: (body) =>
+    client.post('/expenses/bulk-categorize', body).then((r) => r.data),
 };
 
 export const categoriesApi = {

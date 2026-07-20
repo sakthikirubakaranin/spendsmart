@@ -451,6 +451,13 @@ export default function ImportPage() {
               {result.income_imported > 0 && <> · <b className="text-emerald-400">{result.income_imported}</b> income entries</>}
               {result.duplicates_skipped > 0 && ` · ${result.duplicates_skipped} duplicates skipped`}
             </p>
+            {result.recurring_detected > 0 && (
+              <p className="text-sm text-violet-400 mb-1">
+                🔁 <b>{result.recurring_detected}</b> recurring expense{result.recurring_detected > 1 ? 's' : ''} auto-detected and added to <span
+                  className="underline cursor-pointer hover:text-violet-300"
+                  onClick={() => navigate('/recurring')}>Recurring</span>
+              </p>
+            )}
             <p className="text-xs text-slate-600 mb-6">Your dashboard has been updated.</p>
             <div className="flex justify-center gap-3">
               <button onClick={reset}

@@ -21,9 +21,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.dependencies import get_current_user, get_db
 from app.models.expense import Expense
 from app.models.income import Income
+from app.models.recurring_expense import RecurringExpense
 from app.models.statement_import import StatementImport
 from app.models.user import User
 from app.services.categorizer import categorize, classify_income
+from app.services.recurring_detector import detect_recurring
 from app.services.statement_parser import parse_statement
 
 router = APIRouter(prefix="/imports", tags=["imports"])
@@ -99,6 +101,7 @@ class ConfirmResponse(BaseModel):
     expenses_imported: int
     income_imported: int
     duplicates_skipped: int
+    recurring_detected: int   # new RecurringExpense records auto-created
 
 
 class ImportHistoryItem(BaseModel):
@@ -328,10 +331,52 @@ async def confirm_import(
     import_record.completed_at = datetime.utcnow()
     await db.commit()
 
+    # ── Auto-detect recurring expenses ───────────────────────────────────────
+    # Only operate on debit transactions that were actually saved (non-duplicates)
+    saved_debits = [t for t in body.transactions if t.txn_type == "debit"]
+    candidates = detect_recurring(saved_debits, slug_map)
+
+    recurring_detected = 0
+    if candidates:
+        # Fetch existing recurring descriptions for this user (lowercased) to dedup
+        existing_rec_q = await db.execute(
+            text("SELECT LOWER(description) FROM recurring_expenses WHERE user_id = :uid"),
+            {"uid": str(current_user.id)},
+        )
+        existing_rec_keys: set[str] = {r[0] for r in existing_rec_q.fetchall()}
+
+        for c in candidates:
+            # Skip if a recurring item with a very similar description already exists
+            if c.merchant_key in existing_rec_keys:
+                continue
+            # Also skip if description (lowercased) already stored
+            if c.description.lower() in existing_rec_keys:
+                continue
+
+            rec = RecurringExpense(
+                id=uuid.uuid4(),
+                user_id=current_user.id,
+                description=c.description,
+                amount=c.amount,
+                category_id=c.category_id,
+                payment_method="NACH" if c.category_slug == "loan_emi" else "UPI",
+                frequency=c.frequency,
+                day_of_month=c.day_of_month,
+                next_due_date=c.next_due_date,
+                is_active=True,
+            )
+            db.add(rec)
+            existing_rec_keys.add(c.merchant_key)
+            recurring_detected += 1
+
+        if recurring_detected:
+            await db.commit()
+
     return ConfirmResponse(
         expenses_imported=expenses_imported,
         income_imported=income_imported,
         duplicates_skipped=duplicates,
+        recurring_detected=recurring_detected,
     )
 
 

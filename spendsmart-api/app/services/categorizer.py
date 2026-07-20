@@ -83,12 +83,30 @@ RULES: list[tuple[str, list[str], int]] = [
 
     # ── Insurance ────────────────────────────────────────────────────────────
     ("insurance", [
-        "lic of india", "lic premium", "lic.*insurance",
-        "hdfc life", "icici prudential", "max life",
-        "star health", "niva bupa", "care health",
-        "bajaj allianz", "reliance general", "new india assurance",
-        "policybazaar", "insurance premium", "insurance payment",
-        "digit insurance", "go digit", "acko",
+        # LIC
+        "lic of india", "lic premium", "lic hfl", "licindia",
+        # SBI
+        "sbi life", "sbilife", "sbi general", "sbigeneral",
+        # HDFC
+        "hdfc life", "hdfclife", "hdfc ergo", "hdfcergo",
+        # ICICI
+        "icici prudential", "icici pru", "icici lombard", "icicilombard",
+        # Others
+        "max life", "maxlife",
+        "star health", "starhealth",
+        "niva bupa", "nivabupa",
+        "care health", "carehealth",
+        "bajaj allianz", "bajajallianz",
+        "reliance general", "reliancegeneral",
+        "new india assurance",
+        "policybazaar",
+        "digit insurance", "go digit", "godigit", "acko",
+        "tata aia", "tataaia", "tata aig", "tataaig",
+        "kotak life", "kotaklife", "kotak mahindra life",
+        "aditya birla sun life", "absli",
+        "future generali",
+        "insurance premium", "insurance payment", "insur",
+        "nach.*insurance", "ach.*insurance",
     ], 90),
 
     # ── Tax ──────────────────────────────────────────────────────────────────

@@ -128,10 +128,24 @@ function ExpenseModal({ open, onClose, onSave, editData, categories }) {
   )
 }
 
+// ── Extract a short merchant keyword from a narration ────────────────────────
+function descriptionKeyword(description) {
+  let d = description || ''
+  // Strip common bank prefixes
+  d = d.replace(/^(UPI[-/]|NACH\s+DR[-/]?|ACH\s+D[-/]?|NEFT[-/]|IMPS[-/]|RTG[-/]?)/i, '')
+  // Take first segment before @ or second hyphen
+  d = d.split('@')[0].trim()
+  const parts = d.split('-')
+  d = parts[0].trim()
+  return d.slice(0, 30).trim()
+}
+
 // ── Inline category picker ────────────────────────────────────────────────────
-function InlineCategoryPicker({ expense, categories, onSaved }) {
-  const [open, setOpen] = useState(false)
-  const [saving, setSaving] = useState(false)
+function InlineCategoryPicker({ expense, categories, onSaved, onFixSimilar }) {
+  const [open, setOpen]           = useState(false)
+  const [saving, setSaving]       = useState(false)
+  const [fixPrompt, setFixPrompt] = useState(null)   // { categoryName, categoryId, keyword }
+  const [fixing, setFixing]       = useState(false)
   const ref = useRef(null)
 
   useEffect(() => {
@@ -141,9 +155,30 @@ function InlineCategoryPicker({ expense, categories, onSaved }) {
   }, [])
 
   async function pick(catId) {
+    const wasUncategorized = !expense.category
     setSaving(true)
     await expensesApi.update(expense.id, { category_id: catId || null })
-    setSaving(false); setOpen(false); onSaved()
+    setSaving(false); setOpen(false)
+    onSaved()
+    // Offer "Fix similar" only when categorizing a previously-uncategorized expense
+    if (wasUncategorized && catId) {
+      const cat = categories.find(c => c.id === catId)
+      const keyword = descriptionKeyword(expense.description)
+      if (cat && keyword.length >= 3) {
+        setFixPrompt({ categoryName: `${cat.icon ?? ''} ${cat.name}`, categoryId: catId, keyword })
+      }
+    }
+  }
+
+  async function handleFixAll() {
+    if (!fixPrompt) return
+    setFixing(true)
+    const res = await expensesApi.bulkCategorize({
+      category_id: fixPrompt.categoryId,
+      description_contains: fixPrompt.keyword,
+    })
+    setFixing(false); setFixPrompt(null)
+    if (onFixSimilar) onFixSimilar(res.updated)
   }
 
   return (
@@ -157,6 +192,8 @@ function InlineCategoryPicker({ expense, categories, onSaved }) {
             : <span className="flex items-center gap-1 text-white/30 text-sm"><Tag size={12} /> Uncategorised</span>
         )}
       </button>
+
+      {/* Category dropdown */}
       {open && (
         <div className="absolute left-0 top-full mt-1 w-52 rounded-xl z-30 overflow-hidden shadow-2xl"
           style={{ background: '#0f0f1e', border: '1px solid rgba(255,255,255,0.1)' }}>
@@ -172,6 +209,29 @@ function InlineCategoryPicker({ expense, categories, onSaved }) {
                 <span>{c.icon}</span> {c.name}
               </button>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Fix-similar prompt */}
+      {fixPrompt && (
+        <div className="absolute left-0 top-full mt-1 w-72 rounded-xl z-30 p-3 shadow-2xl"
+          style={{ background: '#0f0f1e', border: '1px solid rgba(139,92,246,0.35)' }}>
+          <p className="text-xs text-slate-300 mb-2 leading-relaxed">
+            Apply <b className="text-violet-300">{fixPrompt.categoryName}</b> to all
+            uncategorised expenses containing <b className="text-slate-200">"{fixPrompt.keyword}"</b>?
+          </p>
+          <div className="flex gap-2">
+            <button onClick={handleFixAll} disabled={fixing}
+              className="flex-1 py-1.5 rounded-lg text-xs font-semibold text-white disabled:opacity-60"
+              style={{ background: 'linear-gradient(135deg,#8b5cf6,#06b6d4)' }}>
+              {fixing ? 'Fixing…' : 'Fix all similar'}
+            </button>
+            <button onClick={() => setFixPrompt(null)}
+              className="px-3 py-1.5 rounded-lg text-xs text-slate-500 hover:text-slate-300 transition-colors"
+              style={{ background: 'rgba(255,255,255,0.05)' }}>
+              Skip
+            </button>
           </div>
         </div>
       )}
@@ -196,6 +256,7 @@ export default function ExpensesPage() {
   const [editTarget, setEditTarget]   = useState(null)
   const [undoQueue, setUndoQueue]     = useState({})
   const [deletedIds, setDeletedIds]   = useState(new Set())
+  const [fixSimilarToast, setFixSimilarToast] = useState(null)  // { updated }
   const searchTimer = useRef(null)
 
   function buildParams(p = 1, q = search, cat = categoryFilter, month = monthFilter) {
@@ -251,6 +312,15 @@ export default function ExpensesPage() {
 
   return (
     <Layout title="Expenses">
+      {/* Fix-similar toast */}
+      {fixSimilarToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 text-sm font-medium text-white"
+          style={{ background: 'linear-gradient(135deg,rgba(139,92,246,0.95),rgba(6,182,212,0.95))', backdropFilter: 'blur(12px)' }}>
+          <span>✅ Fixed {fixSimilarToast.updated} similar expense{fixSimilarToast.updated !== 1 ? 's' : ''}</span>
+          <button onClick={() => setFixSimilarToast(null)} className="text-white/60 hover:text-white"><X size={14} /></button>
+        </div>
+      )}
+
       {/* Toolbar */}
       <div className="flex items-center gap-3 mb-4 flex-wrap">
         <div className="relative flex-1 min-w-[180px] max-w-xs">
@@ -384,7 +454,8 @@ export default function ExpensesPage() {
                     <td className="px-5 py-3 text-white/50 whitespace-nowrap">{exp.date}</td>
                     <td className="px-5 py-3 text-white font-medium max-w-[240px] truncate">{exp.description}</td>
                     <td className="px-3 py-2">
-                      <InlineCategoryPicker expense={exp} categories={categories} onSaved={() => load(page)} />
+                      <InlineCategoryPicker expense={exp} categories={categories} onSaved={() => load(page)}
+                        onFixSimilar={count => { setFixSimilarToast({ updated: count }); load(page); setTimeout(() => setFixSimilarToast(null), 4000) }} />
                     </td>
                     <td className="px-5 py-3 text-white/50">{exp.payment_method ?? '—'}</td>
                     <td className="px-5 py-3 text-right font-semibold text-white whitespace-nowrap">{formatINR(exp.amount)}</td>

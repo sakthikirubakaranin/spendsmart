@@ -5,7 +5,8 @@ from datetime import date, datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import func, select
+from pydantic import BaseModel
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -203,6 +204,49 @@ async def delete_expense(
     expense.is_deleted = True
     expense.deleted_at = datetime.now(timezone.utc)
     await db.commit()
+
+
+# ── Bulk categorize ───────────────────────────────────────────────────────────
+# Used by the "Fix similar" UI: set a category on all uncategorized expenses
+# that share the same description keyword, or on a specific list of IDs.
+
+class BulkCategorizeRequest(BaseModel):
+    category_id: int | None                   # null = uncategorize
+    expense_ids: list[uuid.UUID] | None = None # specific IDs
+    description_contains: str | None = None   # keyword match (uncategorized only)
+
+
+class BulkCategorizeResponse(BaseModel):
+    updated: int
+
+
+@router.post("/bulk-categorize", response_model=BulkCategorizeResponse)
+async def bulk_categorize(
+    body: BulkCategorizeRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not body.expense_ids and not body.description_contains:
+        raise HTTPException(status_code=422, detail="Provide expense_ids or description_contains")
+
+    q = (
+        update(Expense)
+        .where(Expense.user_id == current_user.id, Expense.is_deleted == False)
+        .values(category_id=body.category_id)
+    )
+
+    if body.expense_ids:
+        q = q.where(Expense.id.in_(body.expense_ids))
+    else:
+        # Match uncategorized expenses with description keyword
+        q = q.where(
+            Expense.category_id == None,
+            Expense.description.ilike(f"%{body.description_contains}%"),
+        )
+
+    result = await db.execute(q)
+    await db.commit()
+    return BulkCategorizeResponse(updated=result.rowcount)
 
 
 # ── Restore ───────────────────────────────────────────────────────────────────
