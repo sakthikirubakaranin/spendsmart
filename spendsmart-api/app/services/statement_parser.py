@@ -315,13 +315,13 @@ def _parse_hdfc(df_raw: pd.DataFrame, bank_name: str = "HDFC Bank") -> ParseResu
         desc_aliases={"narration", "description", "particulars", "transaction details", "remarks"},
         debit_aliases={
             "withdrawal amt.(inr )", "withdrawal amt.(inr)", "withdrawal",
-            "withdrawal amt", "debit", "debit amt", "debit amount", "dr amount",
-            "withdrawal amount", "dr",
+            "withdrawal amt", "withdrawal amt.", "debit", "debit amt",
+            "debit amount", "dr amount", "withdrawal amount", "dr",
         },
         credit_aliases={
             "deposit amt.(inr )", "deposit amt.(inr)", "deposit",
-            "deposit amt", "credit", "credit amt", "credit amount", "cr amount",
-            "deposit amount", "cr",
+            "deposit amt", "deposit amt.", "credit", "credit amt",
+            "credit amount", "cr amount", "deposit amount", "cr",
         },
         ref_aliases={
             "chq./ref.no.", "chq./ref.no", "ref no.", "ref no", "chq no",
