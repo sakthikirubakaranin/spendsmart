@@ -2,9 +2,9 @@ import { initializeApp } from 'firebase/app'
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth'
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyCJXht8amZYkTpfI6ksI-ZzFJImaXifMag',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'spendsmart-8d997.firebaseapp.com',
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'spendsmart-8d997',
 }
 
 const app = initializeApp(firebaseConfig)
