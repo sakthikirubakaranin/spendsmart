@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { Bell, Plus, Search, X, ChevronDown, AlertTriangle, TrendingUp, ExternalLink, Receipt, Command, ScanLine } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Bell, Plus, Search, X, ChevronDown, AlertTriangle, TrendingUp, ExternalLink, Receipt, Command, ScanLine, Calendar, CalendarRange } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { incomeApi } from '../../api/income'
 import { expensesApi } from '../../api/expenses'
@@ -7,7 +7,35 @@ import { analyticsApi } from '../../api/analytics'
 import { formatINR } from '../../utils/currency'
 import ScanReceiptModal from '../ScanReceiptModal'
 
-const DATE_FILTERS = ['This Month', 'Last Month', 'Last 3 Months', 'Last 6 Months', 'Last Year']
+const PRESET_FILTERS = ['This Month', 'Last Month', 'Last 3 Months', 'Last 6 Months', 'Last Year']
+
+// Generate last N months as { year, month, label } objects
+function buildMonthOptions(count = 24) {
+  const today = new Date()
+  const months = []
+  for (let i = 0; i < count; i++) {
+    let m = today.getMonth() + 1 - i
+    let y = today.getFullYear()
+    while (m <= 0) { m += 12; y-- }
+    const label = new Date(y, m - 1, 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
+    months.push({ year: y, month: m, label, isCurrent: i === 0 })
+  }
+  return months
+}
+
+const MONTH_OPTIONS = buildMonthOptions(24)
+
+// Short display label for active month
+function monthShortLabel(year, month) {
+  return new Date(year, month - 1, 1).toLocaleDateString('en-IN', { month: 'short', year: '2-digit' })
+}
+
+// Short display label for custom range
+function customShortLabel(from, to) {
+  if (!from || !to) return 'Custom'
+  const fmt = d => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+  return `${fmt(from)} – ${fmt(to)}`
+}
 
 const INCOME_TYPES = [
   { value: 'salary',     label: '💼 Salary' },
@@ -475,9 +503,145 @@ function AlertBell() {
 }
 
 
+// ── DateFilterBar ─────────────────────────────────────────────────────────────
+function DateFilterBar({ filterMode, onFilterModeChange }) {
+  const [showMonthPicker, setShowMonthPicker] = useState(false)
+  const [showCustomPicker, setShowCustomPicker] = useState(false)
+  const [customFrom, setCustomFrom] = useState('')
+  const [customTo, setCustomTo] = useState('')
+  const monthRef = useRef(null)
+  const customRef = useRef(null)
+
+  // Pre-fill custom inputs when custom mode is already active
+  useEffect(() => {
+    if (filterMode?.type === 'custom') {
+      setCustomFrom(filterMode.from)
+      setCustomTo(filterMode.to)
+    }
+  }, [filterMode])
+
+  // Close pickers on outside click
+  useEffect(() => {
+    function handle(e) {
+      if (monthRef.current && !monthRef.current.contains(e.target)) setShowMonthPicker(false)
+      if (customRef.current && !customRef.current.contains(e.target)) setShowCustomPicker(false)
+    }
+    document.addEventListener('mousedown', handle)
+    return () => document.removeEventListener('mousedown', handle)
+  }, [])
+
+  const isPreset  = (label) => filterMode?.type === 'preset' && filterMode.label === label
+  const isMonth   = filterMode?.type === 'month'
+  const isCustom  = filterMode?.type === 'custom'
+
+  const activePill = { background: 'rgba(139,92,246,0.25)', color: '#c4b5fd' }
+  const activeGreen = { background: 'rgba(16,185,129,0.2)', color: '#34d399', border: '1px solid rgba(16,185,129,0.3)' }
+  const activeOrange = { background: 'rgba(245,158,11,0.2)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.3)' }
+
+  function applyCustom() {
+    if (customFrom && customTo && customFrom <= customTo) {
+      onFilterModeChange({ type: 'custom', from: customFrom, to: customTo })
+      setShowCustomPicker(false)
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-1 p-1 rounded-lg"
+      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+
+      {/* Preset pills */}
+      {PRESET_FILTERS.map(f => (
+        <button key={f}
+          onClick={() => { onFilterModeChange({ type: 'preset', label: f }); setShowMonthPicker(false); setShowCustomPicker(false) }}
+          className="px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-150 whitespace-nowrap"
+          style={isPreset(f) ? activePill : { color: '#64748b' }}>
+          {f}
+        </button>
+      ))}
+
+      {/* Separator */}
+      <div className="w-px h-4 mx-0.5 flex-shrink-0" style={{ background: 'rgba(255,255,255,0.1)' }} />
+
+      {/* Month picker */}
+      <div className="relative" ref={monthRef}>
+        <button
+          onClick={() => { setShowMonthPicker(m => !m); setShowCustomPicker(false) }}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-150 whitespace-nowrap"
+          style={isMonth ? activeGreen : { color: '#64748b' }}>
+          <Calendar size={11} />
+          {isMonth ? monthShortLabel(filterMode.year, filterMode.month) : 'Month'}
+          <ChevronDown size={10} className={`transition-transform ${showMonthPicker ? 'rotate-180' : ''}`} />
+        </button>
+
+        {showMonthPicker && (
+          <div className="absolute top-full left-0 mt-1.5 w-52 rounded-xl overflow-hidden z-50 shadow-2xl"
+            style={{ background: '#0f0f1e', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div className="px-3 py-2 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+              <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: '#475569' }}>Select Month</p>
+            </div>
+            <div className="max-h-60 overflow-y-auto">
+              {MONTH_OPTIONS.map(m => {
+                const active = filterMode?.type === 'month' && filterMode.year === m.year && filterMode.month === m.month
+                return (
+                  <button key={`${m.year}-${m.month}`}
+                    onClick={() => { onFilterModeChange({ type: 'month', year: m.year, month: m.month }); setShowMonthPicker(false) }}
+                    className="w-full text-left px-3 py-2.5 text-xs transition-colors hover:bg-white/5 flex items-center justify-between"
+                    style={{ color: active ? '#34d399' : '#94a3b8', background: active ? 'rgba(16,185,129,0.07)' : '' }}>
+                    <span>{m.label}</span>
+                    {m.isCurrent && <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(16,185,129,0.15)', color: '#34d399' }}>Current</span>}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Custom range */}
+      <div className="relative" ref={customRef}>
+        <button
+          onClick={() => { setShowCustomPicker(c => !c); setShowMonthPicker(false) }}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-150 whitespace-nowrap"
+          style={isCustom ? activeOrange : { color: '#64748b' }}>
+          <CalendarRange size={11} />
+          {isCustom ? customShortLabel(filterMode.from, filterMode.to) : 'Custom'}
+          <ChevronDown size={10} className={`transition-transform ${showCustomPicker ? 'rotate-180' : ''}`} />
+        </button>
+
+        {showCustomPicker && (
+          <div className="absolute top-full right-0 mt-1.5 w-60 rounded-xl p-3 z-50 shadow-2xl"
+            style={{ background: '#0f0f1e', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <p className="text-[10px] uppercase tracking-wider font-semibold mb-3" style={{ color: '#475569' }}>Custom Range</p>
+            <div className="space-y-2.5">
+              <div>
+                <label className="text-xs mb-1 block" style={{ color: '#64748b' }}>From</label>
+                <input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)}
+                  className="w-full px-2.5 py-2 rounded-lg text-xs outline-none"
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', color: '#e2e8f0' }} />
+              </div>
+              <div>
+                <label className="text-xs mb-1 block" style={{ color: '#64748b' }}>To</label>
+                <input type="date" value={customTo} min={customFrom} onChange={e => setCustomTo(e.target.value)}
+                  className="w-full px-2.5 py-2 rounded-lg text-xs outline-none"
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', color: '#e2e8f0' }} />
+              </div>
+              <button onClick={applyCustom}
+                disabled={!customFrom || !customTo || customFrom > customTo}
+                className="w-full py-2 rounded-lg text-xs font-semibold text-white transition-all hover:opacity-90 disabled:opacity-40"
+                style={{ background: 'linear-gradient(135deg, #f59e0b, #f97316)' }}>
+                Apply Range
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── TopBar ────────────────────────────────────────────────────────────────────
-export default function TopBar({ title = 'Dashboard', activeFilter, onFilterChange, onDataChanged }) {
-  const showFilter = !!onFilterChange
+export default function TopBar({ title = 'Dashboard', filterMode, onFilterModeChange, onDataChanged }) {
+  const showFilter = !!onFilterModeChange
   const [dropdown, setDropdown] = useState(false)
   const [modal, setModal] = useState(null)   // null | 'income' | 'expense'
   const [showSearch, setShowSearch] = useState(false)
@@ -505,25 +669,15 @@ export default function TopBar({ title = 'Dashboard', activeFilter, onFilterChan
         style={{ background: 'var(--bg-topbar)', backdropFilter: 'blur(16px)', borderBottom: '1px solid var(--border-subtle)' }}>
 
         {/* Left */}
-        <div className="flex items-center gap-6">
-          <h1 className="text-lg font-semibold text-slate-100">{title}</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-lg font-semibold text-slate-100 flex-shrink-0">{title}</h1>
           {showFilter && (
-            <div className="flex items-center gap-1.5 p-1 rounded-lg"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
-              {DATE_FILTERS.map(f => (
-                <button key={f} onClick={() => onFilterChange(f)}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-150
-                    ${activeFilter === f ? 'text-white' : 'text-slate-500 hover:text-slate-300'}`}
-                  style={activeFilter === f ? { background: 'rgba(139,92,246,0.25)', color: '#c4b5fd' } : {}}>
-                  {f}
-                </button>
-              ))}
-            </div>
+            <DateFilterBar filterMode={filterMode} onFilterModeChange={onFilterModeChange} />
           )}
         </div>
 
         {/* Right */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-shrink-0">
           <button onClick={() => setShowSearch(true)}
             className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-slate-200 transition-colors"
             style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>

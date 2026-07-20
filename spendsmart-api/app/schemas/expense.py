@@ -10,6 +10,8 @@ class CategoryOut(BaseModel):
     slug: str
     name: str
     icon: Optional[str] = None
+    color: Optional[str] = None
+    is_system: bool = True
     model_config = {"from_attributes": True}
 
 

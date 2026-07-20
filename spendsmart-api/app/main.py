@@ -53,6 +53,17 @@ async def lifespan(app: FastAPI):
         # This is a safety net for first run / dev.
         await conn.run_sync(Base.metadata.create_all)
 
+        # ── Safe column additions (idempotent) ────────────────────────────────
+        _migrations = [
+            # bank_accounts FK on expenses
+            "ALTER TABLE expenses ADD COLUMN IF NOT EXISTS bank_account_id UUID REFERENCES bank_accounts(id) ON DELETE SET NULL",
+            # custom categories support
+            "ALTER TABLE categories ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id) ON DELETE CASCADE",
+            "ALTER TABLE categories ADD COLUMN IF NOT EXISTS color VARCHAR(7)",
+        ]
+        for sql in _migrations:
+            await conn.execute(__import__("sqlalchemy").text(sql))
+
         # Seed system categories — idempotent (ON CONFLICT DO NOTHING)
         for slug, name, icon, sort_order in CATEGORY_SEEDS:
             await conn.execute(

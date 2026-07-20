@@ -12,36 +12,54 @@ import { expensesApi } from '../api/expenses'
 import { formatINR } from '../utils/currency'
 
 // ── Date range helpers ────────────────────────────────────────────────────────
-function getDateRange(filter) {
-  const today = new Date()
-  const pad = n => String(n).padStart(2, '0')
-  const fmt = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+const _pad = n => String(n).padStart(2, '0')
+const _fmt = d => `${d.getFullYear()}-${_pad(d.getMonth() + 1)}-${_pad(d.getDate())}`
 
-  switch (filter) {
-    case 'This Month': {
-      const from = new Date(today.getFullYear(), today.getMonth(), 1)
-      return { from: fmt(from), to: fmt(today) }
+function getParams(filterMode) {
+  const today = new Date()
+  if (!filterMode) return {}
+
+  if (filterMode.type === 'preset') {
+    switch (filterMode.label) {
+      case 'This Month': {
+        const from = new Date(today.getFullYear(), today.getMonth(), 1)
+        return { from_date: _fmt(from), to_date: _fmt(today) }
+      }
+      case 'Last Month': {
+        const from = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+        const to   = new Date(today.getFullYear(), today.getMonth(), 0)
+        return { from_date: _fmt(from), to_date: _fmt(to) }
+      }
+      case 'Last 3 Months': {
+        const from = new Date(today.getFullYear(), today.getMonth() - 2, 1)
+        return { from_date: _fmt(from), to_date: _fmt(today) }
+      }
+      case 'Last 6 Months': {
+        const from = new Date(today.getFullYear(), today.getMonth() - 5, 1)
+        return { from_date: _fmt(from), to_date: _fmt(today) }
+      }
+      case 'Last Year': {
+        const from = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate())
+        return { from_date: _fmt(from), to_date: _fmt(today) }
+      }
+      default: return {}
     }
-    case 'Last Month': {
-      const from = new Date(today.getFullYear(), today.getMonth() - 1, 1)
-      const to   = new Date(today.getFullYear(), today.getMonth(), 0)
-      return { from: fmt(from), to: fmt(to) }
-    }
-    case 'Last 3 Months': {
-      const from = new Date(today.getFullYear(), today.getMonth() - 2, 1)
-      return { from: fmt(from), to: fmt(today) }
-    }
-    case 'Last 6 Months': {
-      const from = new Date(today.getFullYear(), today.getMonth() - 5, 1)
-      return { from: fmt(from), to: fmt(today) }
-    }
-    case 'Last Year': {
-      const from = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate())
-      return { from: fmt(from), to: fmt(today) }
-    }
-    default:
-      return {}
   }
+
+  if (filterMode.type === 'month') {
+    const { year, month } = filterMode
+    const lastDay = new Date(year, month, 0).getDate()
+    return {
+      from_date: `${year}-${_pad(month)}-01`,
+      to_date:   `${year}-${_pad(month)}-${lastDay}`,
+    }
+  }
+
+  if (filterMode.type === 'custom') {
+    return { from_date: filterMode.from, to_date: filterMode.to }
+  }
+
+  return {}
 }
 
 // ── Components ────────────────────────────────────────────────────────────────
@@ -81,7 +99,7 @@ function Skeleton({ className = '' }) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function DashboardPage() {
   const navigate = useNavigate()
-  const [filter, setFilter]               = useState('Last Month')
+  const [filterMode, setFilterMode]        = useState({ type: 'preset', label: 'Last Month' })
   const [summary, setSummary]             = useState(null)
   const [categoryData, setCategoryData]   = useState([])
   const [trendData, setTrendData]         = useState([])
@@ -111,23 +129,21 @@ export default function DashboardPage() {
   useEffect(() => {
     setLoading(true)
     setError('')
-    const { from, to } = getDateRange(filter)
-    const params = from ? { from_date: from, to_date: to } : {}
+    const params = getParams(filterMode)
     fetchAll(params)
       .catch(() => setError('Failed to load dashboard data'))
       .finally(() => setLoading(false))
-  }, [filter])
+  }, [filterMode])
 
   const netPositive = (summary?.net_balance ?? 0) >= 0
 
   function refreshAll() {
-    const { from, to } = getDateRange(filter)
-    const params = from ? { from_date: from, to_date: to } : {}
+    const params = getParams(filterMode)
     fetchAll(params).catch(() => {})
   }
 
   return (
-    <Layout title="Dashboard" activeFilter={filter} onFilterChange={setFilter} onDataChanged={refreshAll}>
+    <Layout title="Dashboard" filterMode={filterMode} onFilterModeChange={setFilterMode} onDataChanged={refreshAll}>
 
       {error && (
         <div className="mb-4 px-4 py-3 rounded-xl text-rose-400 text-sm"

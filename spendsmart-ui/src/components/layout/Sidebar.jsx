@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Receipt, Upload, PieChart,
-  Target, Lightbulb, Repeat, FileText, Settings, LogOut, Users, SplitSquareVertical, CreditCard
+  Target, Lightbulb, Repeat, FileText, Settings, LogOut, Users, SplitSquareVertical, CreditCard, TrendingUp
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import Logo from '../Logo'
@@ -16,6 +16,7 @@ const navItems = [
   { to: '/recurring',  icon: Repeat,    label: 'Recurring' },
   { to: '/groups',     icon: SplitSquareVertical, label: 'Split & Groups' },
   { to: '/accounts',   icon: CreditCard,          label: 'Accounts'      },
+  { to: '/income',     icon: TrendingUp,          label: 'Income'        },
   { to: '/reports',    icon: FileText,  label: 'Reports'   },
   { to: '/settings',  icon: Settings,        label: 'Settings'  },
 ]

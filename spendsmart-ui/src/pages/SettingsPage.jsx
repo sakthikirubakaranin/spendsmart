@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import {
   User, Bell, Shield, Database, Save, CheckCircle,
   Eye, EyeOff, Trash2, AlertTriangle, X, Loader2, Palette,
-  Moon, Sun, Monitor,
+  Moon, Sun, Tag, Plus, Pencil,
 } from 'lucide-react'
 import Layout from '../components/layout/Layout'
 import { usersApi } from '../api/users'
 import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../context/ThemeContext'
+import { categoriesApi } from '../api/expenses'
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
@@ -75,10 +76,18 @@ function InlineAlert({ type, msg, onClose }) {
 const TABS = [
   { id: 'profile',       label: 'Profile',        icon: User     },
   { id: 'appearance',    label: 'Appearance',      icon: Palette  },
+  { id: 'categories',    label: 'Categories',      icon: Tag      },
   { id: 'security',      label: 'Security',        icon: Shield   },
   { id: 'notifications', label: 'Notifications',   icon: Bell     },
   { id: 'data',          label: 'Data & Privacy',  icon: Database },
 ]
+
+const CAT_COLORS = [
+  '#8b5cf6','#06b6d4','#10b981','#f59e0b',
+  '#ef4444','#ec4899','#3b82f6','#84cc16',
+  '#f97316','#a855f7','#14b8a6','#eab308',
+]
+const CAT_ICONS = ['📂','🏷️','⭐','🎯','🛒','🎮','🎨','🏠','🚀','💡','🎵','📚','🏋️','🌿','🐾','✈️','🍕','💊']
 
 export default function SettingsPage() {
   const navigate = useNavigate()
@@ -92,6 +101,43 @@ export default function SettingsPage() {
   const [profileSaving, setProfileSaving] = useState(false)
   const [profileMsg, setProfileMsg] = useState({ type: '', text: '' })
   const [profileDirty, setProfileDirty] = useState(false)
+
+  // Categories
+  const [allCats, setAllCats] = useState([])
+  const [catModal, setCatModal] = useState(null)  // null | 'add' | { edit: cat }
+  const [catForm, setCatForm] = useState({ name: '', icon: '📂', color: '#8b5cf6' })
+  const [catSaving, setCatSaving] = useState(false)
+  const [catDeleting, setCatDeleting] = useState(null)
+
+  async function loadCats() {
+    categoriesApi.list().then(setAllCats).catch(() => {})
+  }
+
+  useEffect(() => {
+    if (tab === 'categories') loadCats()
+  }, [tab])
+
+  async function saveCat(e) {
+    e.preventDefault()
+    setCatSaving(true)
+    try {
+      if (catModal?.edit) {
+        await categoriesApi.update(catModal.edit.id, catForm)
+      } else {
+        await categoriesApi.create(catForm)
+      }
+      setCatModal(null)
+      loadCats()
+    } catch { /* ignore */ }
+    finally { setCatSaving(false) }
+  }
+
+  async function deleteCat(id) {
+    setCatDeleting(id)
+    try { await categoriesApi.delete(id); loadCats() }
+    catch { /* ignore */ }
+    finally { setCatDeleting(null) }
+  }
 
   // Security
   const [pwForm, setPwForm] = useState({ current_password: '', new_password: '', confirm: '' })
@@ -404,6 +450,134 @@ export default function SettingsPage() {
                   </div>
                 </Row>
               </Section>
+            </div>
+          )}
+
+          {/* ── Categories ───────────────────────────────────────────────── */}
+          {tab === 'categories' && (
+            <div>
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Categories</h2>
+                <button
+                  onClick={() => { setCatForm({ name: '', icon: '📂', color: '#8b5cf6' }); setCatModal('add') }}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-all"
+                  style={{ background: 'linear-gradient(135deg, #8b5cf6, #06b6d4)' }}>
+                  <Plus size={14} /> New Category
+                </button>
+              </div>
+
+              {/* System categories */}
+              <Section title="System Categories (read-only)">
+                <div className="flex flex-wrap gap-2 px-5 py-4">
+                  {allCats.filter(c => c.is_system).map(c => (
+                    <span key={c.id} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg"
+                      style={{ background: 'var(--bg-surface-hover)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}>
+                      {c.icon} {c.name}
+                    </span>
+                  ))}
+                </div>
+              </Section>
+
+              {/* Custom categories */}
+              <Section title="Your Custom Categories">
+                {allCats.filter(c => !c.is_system).length === 0 ? (
+                  <div className="px-5 py-8 text-center">
+                    <Tag size={28} className="mx-auto mb-2" style={{ color: 'var(--text-muted)' }} />
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No custom categories yet</p>
+                    <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Create one to track expenses that don't fit system categories</p>
+                  </div>
+                ) : (
+                  allCats.filter(c => !c.is_system).map(c => (
+                    <Row key={c.id}
+                      label={
+                        <span className="flex items-center gap-2">
+                          <span className="w-6 h-6 rounded-md flex items-center justify-center text-sm"
+                            style={{ background: `${c.color || '#8b5cf6'}20` }}>
+                            {c.icon}
+                          </span>
+                          <span style={{ color: 'var(--text-primary)' }}>{c.name}</span>
+                        </span>
+                      }>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: c.color || '#8b5cf6' }} />
+                        <button onClick={() => { setCatForm({ name: c.name, icon: c.icon || '📂', color: c.color || '#8b5cf6' }); setCatModal({ edit: c }) }}
+                          className="p-1.5 rounded-lg transition-colors hover:bg-white/5" style={{ color: 'var(--text-secondary)' }}>
+                          <Pencil size={13} />
+                        </button>
+                        <button onClick={() => deleteCat(c.id)} disabled={catDeleting === c.id}
+                          className="p-1.5 rounded-lg transition-colors" style={{ color: '#fb7185' }}>
+                          {catDeleting === c.id ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                        </button>
+                      </div>
+                    </Row>
+                  ))
+                )}
+              </Section>
+            </div>
+          )}
+
+          {/* ── Category modal ─────────────────────────────────────────────── */}
+          {catModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
+              onClick={e => e.target === e.currentTarget && setCatModal(null)}>
+              <div className="w-full max-w-sm rounded-2xl p-6"
+                style={{ background: 'var(--bg-card)', border: '1px solid var(--border-medium)' }}>
+                <div className="flex items-center justify-between mb-5">
+                  <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    {catModal?.edit ? 'Edit Category' : 'New Category'}
+                  </h3>
+                  <button onClick={() => setCatModal(null)} style={{ color: 'var(--text-muted)' }}><X size={16} /></button>
+                </div>
+                <form onSubmit={saveCat} className="space-y-4">
+                  <div>
+                    <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block" style={{ color: 'var(--text-muted)' }}>Name</label>
+                    <input required className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+                      style={{ background: 'var(--bg-surface-hover)', border: '1px solid var(--border-medium)', color: 'var(--text-primary)' }}
+                      value={catForm.name} onChange={e => setCatForm(f => ({ ...f, name: e.target.value }))}
+                      placeholder="e.g. Side hustle expenses" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block" style={{ color: 'var(--text-muted)' }}>Icon</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {CAT_ICONS.map(em => (
+                        <button key={em} type="button" onClick={() => setCatForm(f => ({ ...f, icon: em }))}
+                          className="w-8 h-8 rounded-lg text-sm transition-all"
+                          style={{
+                            background: catForm.icon === em ? `${catForm.color}30` : 'var(--bg-surface-hover)',
+                            border: catForm.icon === em ? `1.5px solid ${catForm.color}` : '1px solid var(--border-subtle)',
+                          }}>
+                          {em}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block" style={{ color: 'var(--text-muted)' }}>Colour</label>
+                    <div className="flex gap-2 flex-wrap">
+                      {CAT_COLORS.map(c => (
+                        <button key={c} type="button" onClick={() => setCatForm(f => ({ ...f, color: c }))}
+                          className="w-6 h-6 rounded-full transition-all flex items-center justify-center"
+                          style={{ background: c, outline: catForm.color === c ? `2px solid ${c}` : 'none', outlineOffset: '2px' }}>
+                          {catForm.color === c && <CheckCircle size={11} className="text-white" />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex gap-3 pt-1">
+                    <button type="button" onClick={() => setCatModal(null)}
+                      className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors"
+                      style={{ background: 'var(--bg-surface-hover)', color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)' }}>
+                      Cancel
+                    </button>
+                    <button type="submit" disabled={catSaving}
+                      className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-60"
+                      style={{ background: 'linear-gradient(135deg, #8b5cf6, #06b6d4)' }}>
+                      {catSaving ? <Loader2 size={14} className="animate-spin mx-auto" /> : catModal?.edit ? 'Save' : 'Create'}
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
           )}
 
