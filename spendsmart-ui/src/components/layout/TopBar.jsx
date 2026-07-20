@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from 'react'
-import { Bell, Plus, Search, X, ChevronDown, AlertTriangle, TrendingUp, ExternalLink } from 'lucide-react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { Bell, Plus, Search, X, ChevronDown, AlertTriangle, TrendingUp, ExternalLink, Receipt, Command } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { incomeApi } from '../../api/income'
 import { expensesApi } from '../../api/expenses'
 import { analyticsApi } from '../../api/analytics'
+import { formatINR } from '../../utils/currency'
 
 const DATE_FILTERS = ['This Month', 'Last Month', 'Last 3 Months', 'Last 6 Months', 'Last Year']
 
@@ -205,6 +206,119 @@ function AddExpenseModal({ onClose, onSaved }) {
   )
 }
 
+// ── Search Modal ──────────────────────────────────────────────────────────────
+function SearchModal({ onClose }) {
+  const navigate = useNavigate()
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [selected, setSelected] = useState(0)
+  const inputRef = useRef(null)
+  const timerRef = useRef(null)
+
+  useEffect(() => { inputRef.current?.focus() }, [])
+
+  // Debounced search
+  useEffect(() => {
+    if (!query.trim()) { setResults([]); return }
+    clearTimeout(timerRef.current)
+    setLoading(true)
+    timerRef.current = setTimeout(async () => {
+      try {
+        const data = await expensesApi.list({ search: query.trim(), per_page: 8 })
+        setResults(data.items || [])
+        setSelected(0)
+      } catch { setResults([]) }
+      finally { setLoading(false) }
+    }, 280)
+    return () => clearTimeout(timerRef.current)
+  }, [query])
+
+  // Keyboard navigation
+  useEffect(() => {
+    function onKey(e) {
+      if (e.key === 'Escape') { onClose(); return }
+      if (e.key === 'ArrowDown') { e.preventDefault(); setSelected(s => Math.min(s + 1, results.length - 1)) }
+      if (e.key === 'ArrowUp')   { e.preventDefault(); setSelected(s => Math.max(s - 1, 0)) }
+      if (e.key === 'Enter' && results[selected]) {
+        navigate(`/expenses?search=${encodeURIComponent(query)}`)
+        onClose()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [results, selected, query, navigate, onClose])
+
+  function goToExpenses() {
+    if (query.trim()) {
+      navigate(`/expenses?search=${encodeURIComponent(query.trim())}`)
+      onClose()
+    }
+  }
+
+  const fmt = (d) => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' })
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-24 px-4"
+      style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
+      onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="w-full max-w-xl rounded-2xl overflow-hidden shadow-2xl"
+        style={{ background: '#0f0f1e', border: '1px solid rgba(139,92,246,0.3)' }}>
+
+        {/* Input */}
+        <div className="flex items-center gap-3 px-4 py-3.5 border-b" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
+          <Search size={16} className="text-slate-500 flex-shrink-0" />
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Search expenses by merchant, amount, description…"
+            className="flex-1 bg-transparent text-slate-100 placeholder-slate-600 text-sm outline-none"
+          />
+          {loading && <div className="w-4 h-4 border-2 border-violet-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />}
+          <button onClick={onClose} className="text-slate-600 hover:text-slate-400 flex-shrink-0"><X size={16} /></button>
+        </div>
+
+        {/* Results */}
+        {results.length > 0 ? (
+          <div className="max-h-80 overflow-y-auto">
+            {results.map((exp, i) => (
+              <div key={exp.id}
+                onClick={() => { navigate(`/expenses?search=${encodeURIComponent(query)}`); onClose() }}
+                className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${i === selected ? 'bg-white/5' : 'hover:bg-white/3'}`}
+                style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-sm"
+                  style={{ background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.2)' }}>
+                  {exp.category?.icon || '💸'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-slate-200 truncate">{exp.description}</p>
+                  <p className="text-xs text-slate-500">{exp.category?.name || 'Uncategorized'} · {fmt(exp.date)}</p>
+                </div>
+                <span className="text-sm font-semibold text-white flex-shrink-0">{formatINR(exp.amount)}</span>
+              </div>
+            ))}
+            <button onClick={goToExpenses}
+              className="w-full px-4 py-3 text-xs text-violet-400 hover:text-violet-300 text-center transition-colors"
+              style={{ background: 'rgba(139,92,246,0.05)' }}>
+              See all results for "{query}" →
+            </button>
+          </div>
+        ) : query && !loading ? (
+          <div className="px-4 py-10 text-center">
+            <Receipt size={28} className="text-slate-700 mx-auto mb-2" />
+            <p className="text-slate-500 text-sm">No expenses found for "{query}"</p>
+          </div>
+        ) : !query ? (
+          <div className="px-4 py-6 text-center text-slate-600 text-xs">
+            Type to search across all your expenses
+          </div>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
 // ── Alert Bell ────────────────────────────────────────────────────────────────
 function AlertBell() {
   const navigate = useNavigate()
@@ -365,6 +479,19 @@ export default function TopBar({ title = 'Dashboard', activeFilter, onFilterChan
   const showFilter = !!onFilterChange
   const [dropdown, setDropdown] = useState(false)
   const [modal, setModal] = useState(null)   // null | 'income' | 'expense'
+  const [showSearch, setShowSearch] = useState(false)
+
+  // Cmd+K / Ctrl+K opens search
+  useEffect(() => {
+    function onKey(e) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setShowSearch(true)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   function handleSaved() {
     onDataChanged?.()
@@ -395,10 +522,14 @@ export default function TopBar({ title = 'Dashboard', activeFilter, onFilterChan
 
         {/* Right */}
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-slate-200 transition-colors"
+          <button onClick={() => setShowSearch(true)}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-slate-200 transition-colors"
             style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
             <Search size={14} />
             <span className="text-xs hidden lg:block">Search...</span>
+            <kbd className="hidden xl:flex items-center gap-0.5 text-[10px] text-slate-600 border border-slate-700 rounded px-1 py-0.5">
+              <Command size={9} />K
+            </kbd>
           </button>
 
           <AlertBell />
@@ -441,6 +572,7 @@ export default function TopBar({ title = 'Dashboard', activeFilter, onFilterChan
 
       {modal === 'income'  && <AddIncomeModal  onClose={() => setModal(null)} onSaved={handleSaved} />}
       {modal === 'expense' && <AddExpenseModal onClose={() => setModal(null)} onSaved={handleSaved} />}
+      {showSearch && <SearchModal onClose={() => setShowSearch(false)} />}
     </>
   )
 }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import Layout from '../components/layout/Layout'
 import { expensesApi, categoriesApi } from '../api/expenses'
 import { formatINR } from '../utils/currency'
@@ -241,14 +242,17 @@ function InlineCategoryPicker({ expense, categories, onSaved, onFixSimilar }) {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function ExpensesPage() {
+  const location = useLocation()
+  const initialSearch = new URLSearchParams(location.search).get('search') || ''
+
   const [expenses, setExpenses]       = useState([])
   const [categories, setCategories]   = useState([])
   const [loading, setLoading]         = useState(true)
   const [page, setPage]               = useState(1)
   const [pages, setPages]             = useState(1)
   const [total, setTotal]             = useState(0)
-  const [search, setSearch]           = useState('')
-  const [searchInput, setSearchInput] = useState('')
+  const [search, setSearch]           = useState(initialSearch)
+  const [searchInput, setSearchInput] = useState(initialSearch)
   const [categoryFilter, setCategoryFilter] = useState('')  // '' | 'uncategorized' | category_id
   const [monthFilter, setMonthFilter] = useState('')
   const [showFilters, setShowFilters] = useState(false)
