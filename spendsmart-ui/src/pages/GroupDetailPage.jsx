@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Plus, UserPlus, Trash2, X, ArrowRight, Users, Receipt, Calculator } from 'lucide-react'
-import AppLayout from '../components/layout/AppLayout'
+import Layout from '../components/layout/Layout'
 import { groupsApi } from '../api/groups'
 import { useAuth } from '../hooks/useAuth'
 
@@ -216,23 +216,23 @@ export default function GroupDetailPage() {
   const isAdmin = group?.members?.find(m => m.user_id === user?.id)?.role === 'admin'
 
   if (loading) return (
-    <AppLayout>
+    <Layout>
       <div className="flex items-center justify-center h-64">
         <div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
       </div>
-    </AppLayout>
+    </Layout>
   )
 
   if (!group) return (
-    <AppLayout>
+    <Layout>
       <div className="p-6 text-slate-400">Group not found.</div>
-    </AppLayout>
+    </Layout>
   )
 
   const totalExpenses = group.expenses.reduce((s, e) => s + parseFloat(e.amount), 0)
 
   return (
-    <AppLayout>
+    <Layout>
       <div className="p-6 max-w-3xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
@@ -409,6 +409,6 @@ export default function GroupDetailPage() {
         <AddExpenseModal groupId={id} members={group.members} onClose={() => setShowAddExpense(false)}
           onAdded={() => { setShowAddExpense(false); reload() }} />
       )}
-    </AppLayout>
+    </Layout>
   )
 }

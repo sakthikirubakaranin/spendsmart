@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Users, Plus, Trash2, X, ChevronRight, IndianRupee } from 'lucide-react'
-import AppLayout from '../components/layout/AppLayout'
+import Layout from '../components/layout/Layout'
 import { groupsApi } from '../api/groups'
 import { useAuth } from '../hooks/useAuth'
 
@@ -91,7 +91,7 @@ export default function GroupsPage() {
   }
 
   return (
-    <AppLayout>
+    <Layout>
       <div className="p-6 max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -154,6 +154,6 @@ export default function GroupsPage() {
       </div>
 
       {showCreate && <CreateGroupModal onClose={() => setShowCreate(false)} onCreate={handleCreated} />}
-    </AppLayout>
+    </Layout>
   )
 }
