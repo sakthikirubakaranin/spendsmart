@@ -3,20 +3,23 @@ Multi-bank statement parser.
 
 Supported banks / formats
 ─────────────────────────
-• HDFC Bank          — XLS / XLSX (savings & current account)
-• HDFC Credit Card   — XLSX / CSV
-• SBI                — XLS / XLSX / CSV
-• ICICI Bank         — XLS / XLSX / CSV
+• HDFC Bank          — XLS / XLSX / CSV / PDF
+• HDFC Credit Card   — XLSX / CSV / PDF
+• SBI                — XLS / XLSX / CSV / PDF
+• ICICI Bank         — XLS / XLSX / CSV / PDF
 • Axis Bank          — XLS / XLSX / CSV (two layout variants)
 • Kotak Bank         — XLS / XLSX / CSV
 • Yes Bank           — CSV / XLSX
 • IDFC First Bank    — CSV / XLSX
-• Generic fallback   — any CSV/XLSX with recognisable column names
+• IndusInd Bank      — XLS / XLSX / CSV
+• Federal Bank       — XLS / XLSX / CSV
+• AU Small Finance   — XLS / XLSX / CSV
+• Generic fallback   — any CSV/XLSX/XLS/PDF with recognisable column names
 
 Detection order
 ───────────────
 1. Filename heuristics (e.g. "hdfc_cc" → credit card)
-2. First 10-row header text scan (bank name strings)
+2. First 15-row header text scan (bank name strings)
 3. Column-name fingerprinting
 4. Generic fallback
 """
@@ -27,7 +30,7 @@ import hashlib
 import io
 import re
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any
 
 import pandas as pd
@@ -64,7 +67,13 @@ _DATE_FMTS = [
     "%d %b %y", "%d-%b-%y",
     "%m/%d/%Y",
     "%d.%m.%Y", "%d.%m.%y",
+    "%b %d, %Y", "%B %d, %Y",
+    "%d/%m/%Y %H:%M:%S",
+    "%Y-%m-%d %H:%M:%S",
 ]
+
+# Excel epoch: days since 1899-12-30 (accounts for Excel's 1900 leap-year bug)
+_EXCEL_EPOCH = date(1899, 12, 30)
 
 
 def _parse_date(val: Any) -> date | None:
@@ -72,9 +81,20 @@ def _parse_date(val: Any) -> date | None:
         return val.date()
     if isinstance(val, date):
         return val
+
     s = str(val).strip().rstrip(".")
     # Drop time component if present (e.g. "01/01/2025 00:00:00")
     s = re.split(r"\s+\d{1,2}:", s)[0].strip()
+
+    # Excel serial date number (xlrd with dtype=str → "45474.0")
+    # Valid range: 20000–80000 ≈ 1954–2119
+    try:
+        n = float(s.replace(",", ""))
+        if 20000 < n < 80000:
+            return _EXCEL_EPOCH + timedelta(days=int(n))
+    except (ValueError, OverflowError):
+        pass
+
     for fmt in _DATE_FMTS:
         try:
             return datetime.strptime(s, fmt).date()
@@ -120,12 +140,14 @@ def _infer_payment_method(desc: str) -> str:
         return "DEBIT_CARD"
     if any(k in d for k in ("CC ", "CREDIT CARD", "CCPAY")):
         return "CREDIT_CARD"
+    if "CHEQUE" in d or "CHQ" in d:
+        return "CHEQUE"
     return "NET_BANKING"
 
 
 # ── Header-row finder ─────────────────────────────────────────────────────────
 
-def _find_header_row(df_raw: pd.DataFrame, keywords: list[str], max_scan: int = 25) -> int | None:
+def _find_header_row(df_raw: pd.DataFrame, keywords: list[str], max_scan: int = 50) -> int | None:
     """
     Scan the first `max_scan` rows for a row whose cells contain all provided
     keywords (case-insensitive). Returns the 0-based row index or None.
@@ -150,7 +172,6 @@ def _find_header_row(df_raw: pd.DataFrame, keywords: list[str], max_scan: int = 
 def _slice_from_header_or_col(df_raw: pd.DataFrame, header_idx: int) -> pd.DataFrame:
     """Wrapper that handles sentinel -1 (columns are already header)."""
     if header_idx == -1:
-        # Column names are the actual header; just strip rows that look like account info
         df = df_raw.copy()
         df.columns = [str(c).strip() for c in df.columns]
         return df.reset_index(drop=True)
@@ -176,8 +197,9 @@ def _map_cols(
     ref_aliases: set[str] | None = None,
     amount_aliases: set[str] | None = None,
     drcr_aliases: set[str] | None = None,
+    balance_aliases: set[str] | None = None,
 ) -> dict[str, str]:
-    """Map column aliases → actual column names. Returns {'date': ..., 'narration': ..., ...}"""
+    """Map column aliases → actual column names."""
     m: dict[str, str] = {}
     for c in columns:
         cl = c.lower().strip()
@@ -195,6 +217,8 @@ def _map_cols(
             m["amount"] = c
         if drcr_aliases and "drcr" not in m and cl in drcr_aliases:
             m["drcr"] = c
+        if balance_aliases and "balance" not in m and cl in balance_aliases:
+            m["balance"] = c
     return m
 
 
@@ -202,7 +226,7 @@ def _map_cols(
 
 def _build_rows(df: pd.DataFrame, col_map: dict[str, str], result: ParseResult) -> None:
     """
-    Generic row extractor that handles:
+    Generic row extractor. Handles:
     - Separate debit/credit columns
     - Single signed amount column
     - DR/CR indicator column
@@ -227,7 +251,6 @@ def _build_rows(df: pd.DataFrame, col_map: dict[str, str], result: ParseResult) 
         if "deposit" in col_map:
             deposit = _clean_amount(row.get(col_map["deposit"]))
 
-        # DR/CR indicator column (e.g. Axis Bank uses "DR"/"CR" in a separate col)
         drcr = None
         if "drcr" in col_map:
             drcr = str(row.get(col_map["drcr"], "")).strip().upper()
@@ -236,9 +259,9 @@ def _build_rows(df: pd.DataFrame, col_map: dict[str, str], result: ParseResult) 
         if "amount" in col_map and withdrawal is None and deposit is None:
             amt = _clean_amount(row.get(col_map["amount"]))
             if amt is not None:
-                if drcr == "CR":
+                if drcr in ("CR", "CREDIT", "C"):
                     deposit = abs(amt)
-                elif drcr == "DR":
+                elif drcr in ("DR", "DEBIT", "D"):
                     withdrawal = abs(amt)
                 elif amt < 0:
                     withdrawal = abs(amt)
@@ -273,10 +296,6 @@ def _build_rows(df: pd.DataFrame, col_map: dict[str, str], result: ParseResult) 
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _parse_hdfc(df_raw: pd.DataFrame, bank_name: str = "HDFC Bank") -> ParseResult:
-    """
-    HDFC savings/current statement (XLS / XLSX).
-    Looks for header row containing 'Date' and 'Narration'.
-    """
     result = ParseResult(bank=bank_name)
 
     header_idx = _find_header_row(df_raw, ["date", "narration"])
@@ -292,11 +311,23 @@ def _parse_hdfc(df_raw: pd.DataFrame, bank_name: str = "HDFC Bank") -> ParseResu
 
     col_map = _map_cols(
         df.columns.tolist(),
-        date_aliases={"date", "txn date", "transaction date", "posting date"},
-        desc_aliases={"narration", "description", "particulars", "transaction details"},
-        debit_aliases={"withdrawal amt.(inr )", "withdrawal", "withdrawal amt", "debit", "debit amt", "debit amount", "dr amount"},
-        credit_aliases={"deposit amt.(inr )", "deposit", "deposit amt", "credit", "credit amt", "credit amount", "cr amount"},
-        ref_aliases={"chq./ref.no.", "ref no.", "ref no", "chq no", "cheque no", "reference no", "reference number"},
+        date_aliases={"date", "txn date", "transaction date", "posting date", "value date"},
+        desc_aliases={"narration", "description", "particulars", "transaction details", "remarks"},
+        debit_aliases={
+            "withdrawal amt.(inr )", "withdrawal amt.(inr)", "withdrawal",
+            "withdrawal amt", "debit", "debit amt", "debit amount", "dr amount",
+            "withdrawal amount", "dr",
+        },
+        credit_aliases={
+            "deposit amt.(inr )", "deposit amt.(inr)", "deposit",
+            "deposit amt", "credit", "credit amt", "credit amount", "cr amount",
+            "deposit amount", "cr",
+        },
+        ref_aliases={
+            "chq./ref.no.", "chq./ref.no", "ref no.", "ref no", "chq no",
+            "cheque no", "reference no", "reference number", "cheque number",
+        },
+        balance_aliases={"closing balance (inr )", "closing balance", "balance"},
     )
 
     if "date" not in col_map or "narration" not in col_map:
@@ -308,14 +339,8 @@ def _parse_hdfc(df_raw: pd.DataFrame, bank_name: str = "HDFC Bank") -> ParseResu
 
 
 def _parse_hdfc_credit_card(df_raw: pd.DataFrame) -> ParseResult:
-    """
-    HDFC Credit Card statement.
-    Columns: Date | Transaction Details | Amount (INR)
-    Credit card: most transactions are debits, payments to card are credits.
-    """
     result = ParseResult(bank="HDFC Credit Card")
 
-    # Try to find header row with 'date' and 'amount'
     header_idx = _find_header_row(df_raw, ["date", "amount"])
     if header_idx is None:
         header_idx = _find_header_row(df_raw, ["date", "transaction"])
@@ -328,7 +353,7 @@ def _parse_hdfc_credit_card(df_raw: pd.DataFrame) -> ParseResult:
     col_map = _map_cols(
         df.columns.tolist(),
         date_aliases={"date", "txn date", "transaction date"},
-        desc_aliases={"transaction details", "description", "narration", "particulars", "details"},
+        desc_aliases={"transaction details", "description", "narration", "particulars", "details", "merchant name"},
         debit_aliases={"debit", "dr", "debit amount", "withdrawal"},
         credit_aliases={"credit", "cr", "credit amount", "deposit"},
         amount_aliases={"amount (inr)", "amount(inr)", "amount", "transaction amount"},
@@ -351,7 +376,6 @@ def _parse_hdfc_credit_card(df_raw: pd.DataFrame) -> ParseResult:
             result.skipped += 1
             continue
 
-        # Credit card: check for explicit debit/credit cols first
         withdrawal = _clean_amount(row.get(col_map["withdrawal"])) if "withdrawal" in col_map else None
         deposit    = _clean_amount(row.get(col_map["deposit"]))    if "deposit"    in col_map else None
         amt_single = _clean_amount(row.get(col_map["amount"]))     if "amount"     in col_map else None
@@ -368,7 +392,6 @@ def _parse_hdfc_credit_card(df_raw: pd.DataFrame) -> ParseResult:
             elif drcr_col in ("DR", "DEBIT"):
                 txn_type = "debit"
             else:
-                # Credit card heuristic: payments to card and cashback are credits
                 upper_desc = desc.upper()
                 if any(k in upper_desc for k in ("PAYMENT", "CASHBACK", "REFUND", "REVERSAL")):
                     txn_type = "credit"
@@ -396,11 +419,6 @@ def _parse_hdfc_credit_card(df_raw: pd.DataFrame) -> ParseResult:
 
 
 def _parse_sbi(df_raw: pd.DataFrame) -> ParseResult:
-    """
-    SBI account statement (XLS / XLSX / CSV).
-    Header row: Txn Date | Value Date | Description | Ref No./Cheque No. | Debit | Credit | Balance
-    Some SBI exports prefix with account summary rows.
-    """
     result = ParseResult(bank="SBI")
 
     header_idx = _find_header_row(df_raw, ["txn date", "debit"])
@@ -408,6 +426,8 @@ def _parse_sbi(df_raw: pd.DataFrame) -> ParseResult:
         header_idx = _find_header_row(df_raw, ["date", "debit", "credit"])
     if header_idx is None:
         header_idx = _find_header_row(df_raw, ["date", "description"])
+    if header_idx is None:
+        header_idx = _find_header_row(df_raw, ["value date", "description"])
     if header_idx is None:
         result.error = "Could not find transaction table in SBI statement"
         return result
@@ -418,8 +438,8 @@ def _parse_sbi(df_raw: pd.DataFrame) -> ParseResult:
         df.columns.tolist(),
         date_aliases={"txn date", "date", "transaction date", "value date", "posting date"},
         desc_aliases={"description", "narration", "particulars", "transaction details", "remarks"},
-        debit_aliases={"debit", "dr", "debit(inr)", "withdrawal", "withdrawal amt.(inr )"},
-        credit_aliases={"credit", "cr", "credit(inr)", "deposit", "deposit amt.(inr )"},
+        debit_aliases={"debit", "dr", "debit(inr)", "withdrawal", "withdrawal amt.(inr )", "debit amount"},
+        credit_aliases={"credit", "cr", "credit(inr)", "deposit", "deposit amt.(inr )", "credit amount"},
         ref_aliases={"ref no./cheque no.", "ref no", "chq no", "cheque no", "reference"},
     )
 
@@ -432,10 +452,6 @@ def _parse_sbi(df_raw: pd.DataFrame) -> ParseResult:
 
 
 def _parse_icici(df_raw: pd.DataFrame) -> ParseResult:
-    """
-    ICICI Bank account statement (XLS / XLSX / CSV).
-    Header row: Transaction Date | Value Date | Description | Reference Number | Debit | Credit | Balance
-    """
     result = ParseResult(bank="ICICI Bank")
 
     header_idx = _find_header_row(df_raw, ["transaction date", "debit"])
@@ -467,24 +483,17 @@ def _parse_icici(df_raw: pd.DataFrame) -> ParseResult:
 
 
 def _parse_axis(df_raw: pd.DataFrame) -> ParseResult:
-    """
-    Axis Bank account statement (XLS / XLSX / CSV).
-    Two known layouts:
-      Layout A (older): Tran Date | CHQNO | PARTICULARS | DR | CR | BAL
-      Layout B (newer): Transaction Date | Transaction Remarks | Withdrawal Amount (INR ) | Deposit Amount (INR ) | Balance (INR )
-    """
     result = ParseResult(bank="Axis Bank")
 
-    # Try layout B first (newer / more common)
     header_idx = _find_header_row(df_raw, ["transaction date", "withdrawal amount"])
-    layout_b = header_idx is not None
-
-    if not layout_b:
+    if header_idx is None:
         header_idx = _find_header_row(df_raw, ["tran date", "particulars"])
     if header_idx is None:
         header_idx = _find_header_row(df_raw, ["date", "particulars"])
     if header_idx is None:
         header_idx = _find_header_row(df_raw, ["date", "description"])
+    if header_idx is None:
+        header_idx = _find_header_row(df_raw, ["date", "narration"])
     if header_idx is None:
         result.error = "Could not find transaction table in Axis statement"
         return result
@@ -495,9 +504,15 @@ def _parse_axis(df_raw: pd.DataFrame) -> ParseResult:
         df.columns.tolist(),
         date_aliases={"transaction date", "tran date", "txn date", "date", "value date"},
         desc_aliases={"transaction remarks", "particulars", "description", "narration", "remarks", "details"},
-        debit_aliases={"withdrawal amount (inr )", "withdrawal amount", "dr", "debit", "debit amount"},
-        credit_aliases={"deposit amount (inr )", "deposit amount", "cr", "credit", "credit amount"},
-        ref_aliases={"chqno", "chq no", "ref no", "reference no"},
+        debit_aliases={
+            "withdrawal amount (inr )", "withdrawal amount (inr)", "withdrawal amount",
+            "dr", "debit", "debit amount",
+        },
+        credit_aliases={
+            "deposit amount (inr )", "deposit amount (inr)", "deposit amount",
+            "cr", "credit", "credit amount",
+        },
+        ref_aliases={"chqno", "chq no", "ref no", "reference no", "cheque number"},
         amount_aliases={"amount", "transaction amount"},
         drcr_aliases={"type"},
     )
@@ -511,10 +526,6 @@ def _parse_axis(df_raw: pd.DataFrame) -> ParseResult:
 
 
 def _parse_kotak(df_raw: pd.DataFrame) -> ParseResult:
-    """
-    Kotak Mahindra Bank account statement (XLS / XLSX / CSV).
-    Header: Date | Description | Ref No. | Debit Amount | Credit Amount | Balance
-    """
     result = ParseResult(bank="Kotak Bank")
 
     header_idx = _find_header_row(df_raw, ["date", "debit amount"])
@@ -546,7 +557,6 @@ def _parse_kotak(df_raw: pd.DataFrame) -> ParseResult:
 
 
 def _parse_yesbank(df_raw: pd.DataFrame) -> ParseResult:
-    """Yes Bank / IDFC First Bank — similar to generic but with specific column names."""
     result = ParseResult(bank="Yes Bank")
 
     header_idx = _find_header_row(df_raw, ["date", "debit"])
@@ -560,8 +570,66 @@ def _parse_yesbank(df_raw: pd.DataFrame) -> ParseResult:
 
     col_map = _map_cols(
         df.columns.tolist(),
-        date_aliases={"date", "transaction date", "txn date"},
-        desc_aliases={"description", "narration", "particulars", "transaction details"},
+        date_aliases={"date", "transaction date", "txn date", "value date"},
+        desc_aliases={"description", "narration", "particulars", "transaction details", "remarks"},
+        debit_aliases={"debit", "dr", "debit amount", "withdrawal"},
+        credit_aliases={"credit", "cr", "credit amount", "deposit"},
+        ref_aliases={"ref no", "reference", "chq no"},
+    )
+
+    if "date" not in col_map or "narration" not in col_map:
+        result.error = "Missing required columns"
+        return result
+
+    _build_rows(df, col_map, result)
+    return result
+
+
+def _parse_indusind(df_raw: pd.DataFrame) -> ParseResult:
+    result = ParseResult(bank="IndusInd Bank")
+
+    header_idx = _find_header_row(df_raw, ["date", "debit"])
+    if header_idx is None:
+        header_idx = _find_header_row(df_raw, ["date", "description"])
+    if header_idx is None:
+        result.error = "Could not find transaction table in IndusInd statement"
+        return result
+
+    df = _slice_from_header_or_col(df_raw, header_idx)
+
+    col_map = _map_cols(
+        df.columns.tolist(),
+        date_aliases={"date", "transaction date", "txn date", "value date", "posting date"},
+        desc_aliases={"description", "narration", "particulars", "transaction details", "remarks", "transaction description"},
+        debit_aliases={"debit", "dr", "debit amount", "withdrawal", "withdrawal amount"},
+        credit_aliases={"credit", "cr", "credit amount", "deposit", "deposit amount"},
+        ref_aliases={"ref no", "reference", "chq no", "instrument id"},
+    )
+
+    if "date" not in col_map or "narration" not in col_map:
+        result.error = "Missing required columns"
+        return result
+
+    _build_rows(df, col_map, result)
+    return result
+
+
+def _parse_federal(df_raw: pd.DataFrame) -> ParseResult:
+    result = ParseResult(bank="Federal Bank")
+
+    header_idx = _find_header_row(df_raw, ["date", "debit"])
+    if header_idx is None:
+        header_idx = _find_header_row(df_raw, ["date", "description"])
+    if header_idx is None:
+        result.error = "Could not find transaction table in Federal Bank statement"
+        return result
+
+    df = _slice_from_header_or_col(df_raw, header_idx)
+
+    col_map = _map_cols(
+        df.columns.tolist(),
+        date_aliases={"date", "transaction date", "txn date", "value date"},
+        desc_aliases={"description", "narration", "particulars", "transaction details", "remarks"},
         debit_aliases={"debit", "dr", "debit amount", "withdrawal"},
         credit_aliases={"credit", "cr", "credit amount", "deposit"},
         ref_aliases={"ref no", "reference", "chq no"},
@@ -577,37 +645,36 @@ def _parse_yesbank(df_raw: pd.DataFrame) -> ParseResult:
 
 # ── Generic fallback ──────────────────────────────────────────────────────────
 
-_GEN_DATE   = {"date", "txn date", "transaction date", "value date", "posting date", "tran date"}
-_GEN_DESC   = {"narration", "description", "particulars", "details", "remarks",
-               "transaction details", "transaction remarks", "merchant name"}
-_GEN_DEBIT  = {"withdrawal amt.(inr )", "withdrawal amount (inr )", "withdrawal", "debit",
-               "debit amt", "debit amount", "dr", "dr amount"}
-_GEN_CREDIT = {"deposit amt.(inr )", "deposit amount (inr )", "deposit", "credit",
-               "credit amt", "credit amount", "cr", "cr amount"}
-_GEN_AMT    = {"amount", "transaction amount", "amount (inr)", "amount(inr)"}
-_GEN_DRCR   = {"type", "dr/cr", "cr/dr", "txn type", "transaction type"}
+_GEN_DATE   = {
+    "date", "txn date", "transaction date", "value date", "posting date",
+    "tran date", "transaction dt", "txn dt",
+}
+_GEN_DESC   = {
+    "narration", "description", "particulars", "details", "remarks",
+    "transaction details", "transaction remarks", "merchant name",
+    "transaction description", "narration/description",
+}
+_GEN_DEBIT  = {
+    "withdrawal amt.(inr )", "withdrawal amount (inr )", "withdrawal", "debit",
+    "debit amt", "debit amount", "dr", "dr amount", "debit(inr)",
+}
+_GEN_CREDIT = {
+    "deposit amt.(inr )", "deposit amount (inr )", "deposit", "credit",
+    "credit amt", "credit amount", "cr", "cr amount", "credit(inr)",
+}
+_GEN_AMT    = {"amount", "transaction amount", "amount (inr)", "amount(inr)", "net amount"}
+_GEN_DRCR   = {"type", "dr/cr", "cr/dr", "txn type", "transaction type", "debit/credit"}
 
 
 def _parse_generic(df: pd.DataFrame, bank: str = "Unknown") -> ParseResult:
-    """
-    Generic parser — tries to identify columns by matching against alias sets.
-    Handles both header-present DataFrames and header-row-search DataFrames.
-    """
     result = ParseResult(bank=bank)
 
-    # If first column can't be parsed as dates but a later row can, search for header
-    first_col_vals = df.iloc[:5, 0].tolist()
-    looks_like_header = any(
-        str(v).lower().strip() in _GEN_DATE or str(v).lower().strip() in _GEN_DESC
-        for v in first_col_vals
-    )
-    if looks_like_header:
-        # Find the actual header row
-        for i in range(min(30, len(df))):
-            row_vals = [str(v).lower().strip() for v in df.iloc[i].tolist()]
-            if any(v in _GEN_DATE for v in row_vals) and any(v in _GEN_DESC for v in row_vals):
-                df = _slice_from_header(df, i)
-                break
+    # Try to find header row by scanning for date + desc keywords
+    for i in range(min(50, len(df))):
+        row_vals = [str(v).lower().strip() for v in df.iloc[i].tolist()]
+        if any(v in _GEN_DATE for v in row_vals) and any(v in _GEN_DESC for v in row_vals):
+            df = _slice_from_header(df, i)
+            break
 
     df.columns = [str(c).strip() for c in df.columns]
 
@@ -629,12 +696,74 @@ def _parse_generic(df: pd.DataFrame, bank: str = "Unknown") -> ParseResult:
     return result
 
 
-# ── Multi-sheet XLSX loader ───────────────────────────────────────────────────
+# ── PDF parser ────────────────────────────────────────────────────────────────
+
+def _load_pdf(file_bytes: bytes) -> pd.DataFrame | None:
+    """
+    Extract the largest table from a PDF statement using pdfplumber.
+    Returns a raw DataFrame (header=None) or None on failure.
+    """
+    try:
+        import pdfplumber
+    except ImportError:
+        return None
+
+    try:
+        all_rows: list[list[str]] = []
+        with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
+            for page in pdf.pages:
+                tables = page.extract_tables({
+                    "vertical_strategy": "lines",
+                    "horizontal_strategy": "lines",
+                })
+                for table in tables:
+                    cleaned = [
+                        [str(cell).strip() if cell is not None else "" for cell in row]
+                        for row in table
+                        if any(cell for cell in row)   # skip fully-empty rows
+                    ]
+                    all_rows.extend(cleaned)
+
+        if not all_rows:
+            # Try text-based extraction for PDFs without visible table lines
+            with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
+                for page in pdf.pages:
+                    tables = page.extract_tables({
+                        "vertical_strategy": "text",
+                        "horizontal_strategy": "text",
+                    })
+                    for table in tables:
+                        cleaned = [
+                            [str(cell).strip() if cell is not None else "" for cell in row]
+                            for row in table
+                            if any(cell for cell in row)
+                        ]
+                        all_rows.extend(cleaned)
+
+        if not all_rows:
+            return None
+
+        # Normalise row widths
+        max_cols = max(len(r) for r in all_rows)
+        padded = [r + [""] * (max_cols - len(r)) for r in all_rows]
+        return pd.DataFrame(padded, dtype=str)
+
+    except Exception:
+        return None
+
+
+# ── Multi-sheet XLSX / XLS loader ─────────────────────────────────────────────
+
+def _has_date_value(val: str) -> bool:
+    """Return True if val looks like a date (parseable or Excel serial)."""
+    return _parse_date(val) is not None
+
 
 def _load_excel_best_sheet(file_bytes: bytes, ext: str) -> pd.DataFrame | None:
     """
     Load XLSX/XLS, trying each sheet and returning the one with the most rows
-    that contains at least one recognisable date-like value.
+    that contains at least one recognisable date-like value in the first 3 columns
+    within the first 50 rows. Also handles Excel serial date numbers.
     """
     engine = "xlrd" if ext == "xls" else "openpyxl"
     try:
@@ -650,17 +779,44 @@ def _load_excel_best_sheet(file_bytes: bytes, ext: str) -> pd.DataFrame | None:
             df = xf.parse(sheet, header=None, dtype=str)
         except Exception:
             continue
-        if df.empty:
+        if df.empty or len(df) < 3:
             continue
-        # Quick sanity check: does the sheet have any date-parseable cells in first col?
-        has_dates = any(
-            _parse_date(v) is not None
-            for v in df.iloc[:, 0].tolist()[:30]
-            if str(v).lower() not in ("nan", "none", "")
-        )
+
+        # Check first 3 columns, up to 50 rows, for parseable dates
+        has_dates = False
+        n_cols = min(3, df.shape[1])
+        for col_idx in range(n_cols):
+            col_vals = [
+                str(v) for v in df.iloc[:50, col_idx].tolist()
+                if str(v).lower() not in ("nan", "none", "")
+            ]
+            if any(_has_date_value(v) for v in col_vals):
+                has_dates = True
+                break
+
+        # If no dates found, still accept if sheet has many rows (could be all-text header at top)
+        if not has_dates and len(df) > 20:
+            # Last chance: check if any cell in first 50 rows looks date-like
+            for row_idx in range(min(50, len(df))):
+                row_vals = [str(v) for v in df.iloc[row_idx].tolist() if str(v).lower() not in ("nan", "none", "")]
+                if any(_has_date_value(v) for v in row_vals):
+                    has_dates = True
+                    break
+
         if has_dates and len(df) > best_rows:
             best = df
             best_rows = len(df)
+
+    # If still no best, return the largest non-empty sheet (very permissive fallback)
+    if best is None:
+        for sheet in xf.sheet_names:
+            try:
+                df = xf.parse(sheet, header=None, dtype=str)
+                if not df.empty and len(df) > best_rows:
+                    best = df
+                    best_rows = len(df)
+            except Exception:
+                continue
 
     return best
 
@@ -676,7 +832,6 @@ def parse_statement(file_bytes: bytes, filename: str, user_id: str) -> ParseResu
 
     if ext == "csv":
         try:
-            # Try UTF-8, fall back to latin-1
             try:
                 df_raw = pd.read_csv(io.BytesIO(file_bytes), dtype=str, keep_default_na=False)
             except UnicodeDecodeError:
@@ -689,7 +844,12 @@ def parse_statement(file_bytes: bytes, filename: str, user_id: str) -> ParseResu
     elif ext in ("xls", "xlsx", "xlsm"):
         df_raw = _load_excel_best_sheet(file_bytes, ext)
         if df_raw is None:
-            return ParseResult(bank="Unknown", error="Could not read Excel file")
+            return ParseResult(bank="Unknown", error="Could not read Excel file. The file may be password-protected or in an unsupported format.")
+
+    elif ext == "pdf":
+        df_raw = _load_pdf(file_bytes)
+        if df_raw is None:
+            return ParseResult(bank="Unknown", error="Could not extract tables from PDF. Please try exporting as XLS or CSV from your bank's net banking portal.")
 
     else:
         return ParseResult(bank="Unknown", error=f"Unsupported format: .{ext}")
@@ -697,29 +857,32 @@ def parse_statement(file_bytes: bytes, filename: str, user_id: str) -> ParseResu
     # ── 2. Detect bank ────────────────────────────────────────────────────────
     header_text = " ".join(
         str(v).lower()
-        for v in df_raw.iloc[:10].values.flatten()
+        for v in df_raw.iloc[:15].values.flatten()
         if str(v).lower() not in ("nan", "none", "")
     )
     col_text = " ".join(str(c).lower() for c in df_raw.columns.tolist())
     full_text = header_text + " " + col_text
 
     # Filename-based hints (highest priority)
-    is_hdfc_cc = any(k in fn for k in ("_cc", "creditcard", "credit_card", "cc_stmt", "hdfc_cc"))
-    is_hdfc    = "hdfc" in fn and not is_hdfc_cc
-    is_sbi     = any(k in fn for k in ("sbi", "statebank", "state_bank"))
-    is_icici   = "icici" in fn
-    is_axis    = "axis" in fn
-    is_kotak   = "kotak" in fn
-    is_yes     = "yesbank" in fn or "yes_bank" in fn
-    is_idfc    = "idfc" in fn
+    is_hdfc_cc  = any(k in fn for k in ("_cc", "creditcard", "credit_card", "cc_stmt", "hdfc_cc", "hdfccc"))
+    is_hdfc     = "hdfc" in fn and not is_hdfc_cc
+    is_sbi      = any(k in fn for k in ("sbi", "statebank", "state_bank", "sbiaccount"))
+    is_icici    = "icici" in fn
+    is_axis     = "axis" in fn
+    is_kotak    = "kotak" in fn
+    is_yes      = "yesbank" in fn or "yes_bank" in fn
+    is_idfc     = "idfc" in fn
+    is_indusind = any(k in fn for k in ("indusind", "induslnd", "indusind"))
+    is_federal  = "federal" in fn
 
     # Content-based detection (fallback)
-    if not any([is_hdfc_cc, is_hdfc, is_sbi, is_icici, is_axis, is_kotak, is_yes, is_idfc]):
+    if not any([is_hdfc_cc, is_hdfc, is_sbi, is_icici, is_axis, is_kotak,
+                is_yes, is_idfc, is_indusind, is_federal]):
         if "hdfc" in full_text and any(k in full_text for k in ("credit card", "creditcard")):
             is_hdfc_cc = True
         elif "hdfc" in full_text:
             is_hdfc = True
-        elif "state bank" in full_text or " sbi " in full_text:
+        elif "state bank" in full_text or " sbi " in full_text or "sbi bank" in full_text:
             is_sbi = True
         elif "icici" in full_text:
             is_icici = True
@@ -731,6 +894,10 @@ def parse_statement(file_bytes: bytes, filename: str, user_id: str) -> ParseResu
             is_yes = True
         elif "idfc" in full_text:
             is_idfc = True
+        elif "indusind" in full_text:
+            is_indusind = True
+        elif "federal" in full_text:
+            is_federal = True
 
     # ── 3. Parse ──────────────────────────────────────────────────────────────
     result: ParseResult | None = None
@@ -739,8 +906,7 @@ def parse_statement(file_bytes: bytes, filename: str, user_id: str) -> ParseResu
         result = _parse_hdfc_credit_card(df_raw)
     elif is_hdfc:
         result = _parse_hdfc(df_raw, bank_name="HDFC Bank")
-        if result.error:
-            # May be HDFC credit card in disguise
+        if result.error or not result.rows:
             result = _parse_hdfc_credit_card(df_raw)
     elif is_sbi:
         result = _parse_sbi(df_raw)
@@ -753,16 +919,21 @@ def parse_statement(file_bytes: bytes, filename: str, user_id: str) -> ParseResu
     elif is_yes or is_idfc:
         result = _parse_yesbank(df_raw)
         result.bank = "IDFC First Bank" if is_idfc else "Yes Bank"
+    elif is_indusind:
+        result = _parse_indusind(df_raw)
+    elif is_federal:
+        result = _parse_federal(df_raw)
     else:
-        # Unknown bank — try all parsers in order, use best result
+        # Unknown bank — try all parsers, use best result
         candidates = [
             _parse_hdfc(df_raw),
             _parse_sbi(df_raw),
             _parse_icici(df_raw),
             _parse_axis(df_raw),
             _parse_kotak(df_raw),
+            _parse_indusind(df_raw),
+            _parse_federal(df_raw),
         ]
-        # Pick the parser that found the most rows without error
         best = max(candidates, key=lambda r: len(r.rows) if not r.error else -1)
         if best.rows:
             result = best

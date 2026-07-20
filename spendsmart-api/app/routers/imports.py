@@ -29,7 +29,7 @@ from app.services.statement_parser import parse_statement
 router = APIRouter(prefix="/imports", tags=["imports"])
 
 MAX_FILE_MB = 25
-ALLOWED_EXTENSIONS = {"xls", "xlsx", "xlsm", "csv"}
+ALLOWED_EXTENSIONS = {"xls", "xlsx", "xlsm", "csv", "pdf"}
 
 # Salary credited in the last N days of a month is attributed to the next month
 SALARY_LAST_DAYS_THRESHOLD = 3

@@ -170,7 +170,7 @@ export default function ImportPage() {
           <div className="glass rounded-2xl p-6">
             <h3 className="text-sm font-semibold text-slate-200 mb-1">Upload Bank Statement</h3>
             <p className="text-xs text-slate-500 mb-5">
-              Supports XLS, XLSX, CSV · Max 25 MB
+              Supports XLS, XLSX, CSV, PDF · Max 25 MB
             </p>
 
             {stage === 'idle' ? (
@@ -194,7 +194,7 @@ export default function ImportPage() {
                   <p className="text-xs text-slate-500 mt-1">or click to browse</p>
                 </div>
                 <div className="flex flex-wrap gap-2 mt-1 justify-center">
-                  {['XLS', 'XLSX', 'CSV'].map(f => (
+                  {['XLS', 'XLSX', 'CSV', 'PDF'].map(f => (
                     <span key={f} className="text-xs px-2.5 py-1 rounded-lg font-semibold text-slate-400"
                       style={{ background: 'rgba(255,255,255,0.06)' }}>{f}</span>
                   ))}
@@ -206,7 +206,7 @@ export default function ImportPage() {
                   ))}
                 </div>
                 <input ref={fileRef} type="file" className="hidden"
-                  accept=".xls,.xlsx,.xlsm,.csv"
+                  accept=".xls,.xlsx,.xlsm,.csv,.pdf"
                   onChange={e => handleFile(e.target.files[0])} />
               </div>
             ) : (
