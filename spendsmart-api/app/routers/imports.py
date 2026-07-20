@@ -263,9 +263,15 @@ async def confirm_import(
         {r[0] for r in existing_inc.fetchall()}
     )
 
+    # Pre-load ALL category slugs at once — avoids N+1 DB queries (1 query vs 1 per transaction)
+    slug_rows = await db.execute(text("SELECT id, slug FROM categories"))
+    slug_map: dict[str, int] = {row[1]: row[0] for row in slug_rows.fetchall()}
+
     expenses_imported = 0
     income_imported = 0
     duplicates = 0
+    expenses_to_add: list[Expense] = []
+    incomes_to_add: list[Income] = []
 
     for txn in body.transactions:
         if txn.row_hash and txn.row_hash in existing_hashes:
@@ -273,8 +279,8 @@ async def confirm_import(
             continue
 
         if txn.txn_type == "debit":
-            category_id = await _slug_to_id(txn.category_slug, db)
-            db.add(Expense(
+            category_id = slug_map.get(txn.category_slug)
+            expenses_to_add.append(Expense(
                 id=uuid.uuid4(),
                 user_id=current_user.id,
                 date=txn.date,
@@ -290,7 +296,7 @@ async def confirm_import(
         else:
             itype = txn.income_type or "other"
             period = _income_period_month(txn.date, itype)
-            db.add(Income(
+            incomes_to_add.append(Income(
                 id=uuid.uuid4(),
                 user_id=current_user.id,
                 date=txn.date,
@@ -306,6 +312,15 @@ async def confirm_import(
 
         if txn.row_hash:
             existing_hashes.add(txn.row_hash)
+
+    # Bulk-insert in batches of 200 to keep transactions short
+    BATCH = 200
+    for i in range(0, len(expenses_to_add), BATCH):
+        db.add_all(expenses_to_add[i : i + BATCH])
+        await db.flush()
+    for i in range(0, len(incomes_to_add), BATCH):
+        db.add_all(incomes_to_add[i : i + BATCH])
+        await db.flush()
 
     import_record.imported_rows = expenses_imported + income_imported
     import_record.skipped_rows = duplicates
