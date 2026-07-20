@@ -33,6 +33,9 @@ class User(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     # Relationships
+    bank_accounts = relationship("BankAccount", cascade="all, delete-orphan",
+                                  foreign_keys="BankAccount.user_id",
+                                  primaryjoin="User.id == BankAccount.user_id")
     expenses = relationship("Expense", back_populates="user", cascade="all, delete-orphan")
     incomes = relationship("Income", back_populates="user", cascade="all, delete-orphan")
     budgets = relationship("Budget", back_populates="user", cascade="all, delete-orphan")

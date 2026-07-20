@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Upload, FileText, CheckCircle, X, Loader, AlertCircle } from 'lucide-react'
+import { Upload, FileText, CheckCircle, X, Loader, AlertCircle, CreditCard } from 'lucide-react'
 import Layout from '../components/layout/Layout'
 import { importsApi } from '../api/imports'
+import { bankAccountsApi } from '../api/bankAccounts'
 import { formatINR } from '../utils/currency'
 
 const ALL_CATEGORIES = [
@@ -64,12 +65,22 @@ export default function ImportPage() {
   const [error, setError]           = useState('')
   const [history, setHistory]       = useState([])
   const [historyLoading, setHistoryLoading] = useState(true)
+  const [bankAccounts, setBankAccounts] = useState([])
+  const [selectedAccountId, setSelectedAccountId] = useState('')
 
   useEffect(() => {
     importsApi.history()
       .then(setHistory)
       .catch(() => {})
       .finally(() => setHistoryLoading(false))
+
+    bankAccountsApi.list()
+      .then(accounts => {
+        setBankAccounts(accounts)
+        const def = accounts.find(a => a.is_default)
+        if (def) setSelectedAccountId(def.id)
+      })
+      .catch(() => {})
   }, [])
 
   async function handleFile(file) {
@@ -133,7 +144,7 @@ export default function ImportPage() {
           row_hash:       t.row_hash,
         })),
       ]
-      const res = await importsApi.confirm(uploadData.import_id, transactions)
+      const res = await importsApi.confirm(uploadData.import_id, transactions, selectedAccountId || null)
       setResult(res)
       setStage('done')
       // Refresh history
@@ -168,10 +179,33 @@ export default function ImportPage() {
         {/* ── Upload zone ── */}
         {(stage === 'idle' || stage === 'uploading') && (
           <div className="glass rounded-2xl p-6">
-            <h3 className="text-sm font-semibold text-slate-200 mb-1">Upload Bank Statement</h3>
-            <p className="text-xs text-slate-500 mb-5">
-              Supports XLS, XLSX, CSV, PDF · Max 25 MB
-            </p>
+            <div className="flex items-start justify-between mb-5">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-200 mb-1">Upload Bank Statement</h3>
+                <p className="text-xs text-slate-500">
+                  Supports XLS, XLSX, CSV, PDF · Max 25 MB
+                </p>
+              </div>
+              {/* Bank account selector */}
+              {bankAccounts.length > 0 && (
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <CreditCard size={13} className="text-slate-500" />
+                  <select
+                    value={selectedAccountId}
+                    onChange={e => setSelectedAccountId(e.target.value)}
+                    className="text-xs rounded-lg px-2.5 py-1.5 outline-none"
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#c4b5fd' }}
+                  >
+                    <option value="">No account</option>
+                    {bankAccounts.map(a => (
+                      <option key={a.id} value={a.id}>
+                        {a.icon} {a.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
 
             {stage === 'idle' ? (
               <div

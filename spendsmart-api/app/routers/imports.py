@@ -95,6 +95,7 @@ class ConfirmTransaction(BaseModel):
 class ConfirmRequest(BaseModel):
     import_id: str
     transactions: list[ConfirmTransaction]
+    bank_account_id: str | None = None   # optional — link imported expenses to an account
 
 
 class ConfirmResponse(BaseModel):
@@ -283,6 +284,7 @@ async def confirm_import(
 
         if txn.txn_type == "debit":
             category_id = slug_map.get(txn.category_slug)
+            ba_id = uuid.UUID(body.bank_account_id) if body.bank_account_id else None
             expenses_to_add.append(Expense(
                 id=uuid.uuid4(),
                 user_id=current_user.id,
@@ -294,6 +296,7 @@ async def confirm_import(
                 source="statement_import",
                 import_id=import_record.id,
                 narration_hash=txn.row_hash or None,
+                bank_account_id=ba_id,
             ))
             expenses_imported += 1
         else:

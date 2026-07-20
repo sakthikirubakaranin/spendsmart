@@ -10,10 +10,12 @@ from app.models.category_correction import CategoryCorrection
 from app.models.notification_preference import NotificationPreference
 from app.models.audit_log import AuditLog
 from app.models.group import Group, GroupMember, GroupExpense, GroupExpenseSplit
+from app.models.bank_account import BankAccount
 
 __all__ = [
     "User", "Category", "Expense", "Income", "Budget", "StatementImport",
     "RecurringExpense", "SavingTip", "CategoryCorrection",
     "NotificationPreference", "AuditLog",
     "Group", "GroupMember", "GroupExpense", "GroupExpenseSplit",
+    "BankAccount",
 ]

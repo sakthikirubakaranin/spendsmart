@@ -29,6 +29,8 @@ class Expense(Base):
     category_confidence: Mapped[int | None] = mapped_column(SmallInteger)
     narration_hash: Mapped[str | None] = mapped_column(String(64), index=True)
 
+    bank_account_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("bank_accounts.id", ondelete="SET NULL"))
+
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     recurring_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("recurring_expenses.id"))
@@ -40,3 +42,4 @@ class Expense(Base):
     user = relationship("User", back_populates="expenses")
     category = relationship("Category", back_populates="expenses", foreign_keys=[category_id])
     sub_category = relationship("Category", foreign_keys=[sub_category_id])
+    bank_account = relationship("BankAccount", back_populates="expenses", foreign_keys=[bank_account_id])

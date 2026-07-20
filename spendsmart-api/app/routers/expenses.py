@@ -34,7 +34,11 @@ def _expense_query(user_id: uuid.UUID):
     return (
         select(Expense)
         .where(Expense.user_id == user_id, Expense.is_deleted == False)
-        .options(selectinload(Expense.category), selectinload(Expense.sub_category))
+        .options(
+            selectinload(Expense.category),
+            selectinload(Expense.sub_category),
+            selectinload(Expense.bank_account),
+        )
     )
 
 
@@ -52,6 +56,7 @@ async def list_expenses(
     search: Optional[str] = None,
     sort: str = Query("date_desc", pattern="^(date_asc|date_desc|amount_asc|amount_desc)$"),
     uncategorized: bool = False,
+    bank_account_id: Optional[uuid.UUID] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -71,6 +76,8 @@ async def list_expenses(
         q = q.where(Expense.source == source)
     if search:
         q = q.where(Expense.description.ilike(f"%{search}%"))
+    if bank_account_id:
+        q = q.where(Expense.bank_account_id == bank_account_id)
 
     sort_map = {
         "date_desc": Expense.date.desc(),

@@ -2,8 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import Layout from '../components/layout/Layout'
 import { expensesApi, categoriesApi } from '../api/expenses'
+import { bankAccountsApi } from '../api/bankAccounts'
 import { formatINR } from '../utils/currency'
-import { Search, Plus, Edit2, Trash2, X, RotateCcw, ChevronLeft, ChevronRight, SlidersHorizontal, Tag } from 'lucide-react'
+import { Search, Plus, Edit2, Trash2, X, RotateCcw, ChevronLeft, ChevronRight, SlidersHorizontal, Tag, CreditCard } from 'lucide-react'
 
 const PAYMENT_METHODS = ['UPI', 'Credit Card', 'Debit Card', 'Cash', 'Net Banking']
 
@@ -255,6 +256,8 @@ export default function ExpensesPage() {
   const [searchInput, setSearchInput] = useState(initialSearch)
   const [categoryFilter, setCategoryFilter] = useState('')  // '' | 'uncategorized' | category_id
   const [monthFilter, setMonthFilter] = useState('')
+  const [accountFilter, setAccountFilter] = useState('')
+  const [bankAccounts, setBankAccounts] = useState([])
   const [showFilters, setShowFilters] = useState(false)
   const [modalOpen, setModalOpen]     = useState(false)
   const [editTarget, setEditTarget]   = useState(null)
@@ -263,26 +266,28 @@ export default function ExpensesPage() {
   const [fixSimilarToast, setFixSimilarToast] = useState(null)  // { updated }
   const searchTimer = useRef(null)
 
-  function buildParams(p = 1, q = search, cat = categoryFilter, month = monthFilter) {
+  function buildParams(p = 1, q = search, cat = categoryFilter, month = monthFilter, acc = accountFilter) {
     const params = { page: p, per_page: 25, sort: 'date_desc' }
     if (q) params.search = q
     if (cat === 'uncategorized') params.uncategorized = true
     else if (cat) params.category_id = cat
     const range = monthToRange(month)
     if (range.from_date) { params.from_date = range.from_date; params.to_date = range.to_date }
+    if (acc) params.bank_account_id = acc
     return params
   }
 
-  const load = useCallback(async (p = 1, q = search, cat = categoryFilter, month = monthFilter) => {
+  const load = useCallback(async (p = 1, q = search, cat = categoryFilter, month = monthFilter, acc = accountFilter) => {
     setLoading(true)
     try {
-      const res = await expensesApi.list(buildParams(p, q, cat, month))
+      const res = await expensesApi.list(buildParams(p, q, cat, month, acc))
       setExpenses(res.items); setPages(res.pages); setTotal(res.total)
     } finally { setLoading(false) }
-  }, [search, categoryFilter, monthFilter])
+  }, [search, categoryFilter, monthFilter, accountFilter])
 
   useEffect(() => { categoriesApi.list().then(setCategories) }, [])
-  useEffect(() => { load(1) }, [categoryFilter, monthFilter])
+  useEffect(() => { bankAccountsApi.list().then(setBankAccounts).catch(() => {}) }, [])
+  useEffect(() => { load(1) }, [categoryFilter, monthFilter, accountFilter])
 
   function handleSearchChange(val) {
     setSearchInput(val)
@@ -291,10 +296,10 @@ export default function ExpensesPage() {
   }
 
   function clearFilters() {
-    setCategoryFilter(''); setMonthFilter(''); setSearch(''); setSearchInput(''); setPage(1)
+    setCategoryFilter(''); setMonthFilter(''); setAccountFilter(''); setSearch(''); setSearchInput(''); setPage(1)
   }
 
-  const activeFilterCount = [categoryFilter, monthFilter, search].filter(Boolean).length
+  const activeFilterCount = [categoryFilter, monthFilter, search, accountFilter].filter(Boolean).length
 
   const displayed = expenses.filter(e => !deletedIds.has(e.id))
 
@@ -382,6 +387,21 @@ export default function ExpensesPage() {
               {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
             </select>
           </div>
+          {/* Bank Account */}
+          {bankAccounts.length > 0 && (
+            <div className="flex flex-col gap-1 min-w-[180px]">
+              <label className="text-white/40 text-xs uppercase tracking-wide flex items-center gap-1">
+                <CreditCard size={11} /> Account
+              </label>
+              <select value={accountFilter} onChange={e => { setAccountFilter(e.target.value); setPage(1) }}
+                className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500/50">
+                <option value="">All accounts</option>
+                {bankAccounts.map(a => (
+                  <option key={a.id} value={a.id}>{a.icon} {a.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
           {/* Quick links */}
           <div className="flex flex-col gap-1">
             <label className="text-white/40 text-xs uppercase tracking-wide">Quick</label>
@@ -461,7 +481,16 @@ export default function ExpensesPage() {
                       <InlineCategoryPicker expense={exp} categories={categories} onSaved={() => load(page)}
                         onFixSimilar={count => { setFixSimilarToast({ updated: count }); load(page); setTimeout(() => setFixSimilarToast(null), 4000) }} />
                     </td>
-                    <td className="px-5 py-3 text-white/50">{exp.payment_method ?? '—'}</td>
+                    <td className="px-5 py-3 text-white/50">
+                      <div className="flex flex-col gap-0.5">
+                        <span>{exp.payment_method ?? '—'}</span>
+                        {exp.bank_account && (
+                          <span className="text-[10px] flex items-center gap-1" style={{ color: exp.bank_account.color }}>
+                            {exp.bank_account.icon} {exp.bank_account.name}
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-5 py-3 text-right font-semibold text-white whitespace-nowrap">{formatINR(exp.amount)}</td>
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity justify-end">

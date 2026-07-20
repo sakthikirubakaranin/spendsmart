@@ -13,6 +13,17 @@ class CategoryOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class BankAccountOut(BaseModel):
+    id: uuid.UUID
+    name: str
+    bank_name: str
+    account_type: str
+    last_4_digits: Optional[str] = None
+    color: str
+    icon: str
+    model_config = {"from_attributes": True}
+
+
 class ExpenseCreate(BaseModel):
     date: date
     amount: float
@@ -21,6 +32,7 @@ class ExpenseCreate(BaseModel):
     sub_category_id: Optional[int] = None
     payment_method: Optional[str] = None
     notes: Optional[str] = None
+    bank_account_id: Optional[uuid.UUID] = None
 
     @field_validator("amount")
     @classmethod
@@ -45,6 +57,7 @@ class ExpenseUpdate(BaseModel):
     sub_category_id: Optional[int] = None
     payment_method: Optional[str] = None
     notes: Optional[str] = None
+    bank_account_id: Optional[uuid.UUID] = None
 
 
 class ExpenseOut(BaseModel):
@@ -58,6 +71,7 @@ class ExpenseOut(BaseModel):
     notes: Optional[str] = None
     source: str
     category_confidence: Optional[int] = None
+    bank_account: Optional[BankAccountOut] = None
     is_deleted: bool
     created_at: datetime
     updated_at: datetime

@@ -11,10 +11,11 @@ export const importsApi = {
   },
 
   /** Confirm a reviewed import — saves expenses to DB. */
-  confirm(importId, transactions) {
+  confirm(importId, transactions, bankAccountId = null) {
     return api.post('/imports/confirm', {
       import_id: importId,
       transactions,
+      bank_account_id: bankAccountId || null,
     }).then(r => r.data)
   },
 
