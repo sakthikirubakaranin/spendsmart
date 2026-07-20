@@ -102,7 +102,7 @@ class ConfirmResponse(BaseModel):
 
 
 class ImportHistoryItem(BaseModel):
-    id: str
+    id: uuid.UUID
     filename: str
     bank_name: str | None
     status: str
@@ -146,6 +146,13 @@ async def upload_statement(
 
     user_id_str = str(current_user.id)
     result = parse_statement(contents, file.filename or "upload", user_id_str)
+
+    # Surface parse errors early so the frontend can show a useful message
+    if result.error and not result.rows:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=result.error or "Statement could not be parsed. Try a different file or format.",
+        )
 
     # Pre-load existing hashes so we can flag duplicates in the preview
     existing_exp_q = await db.execute(
