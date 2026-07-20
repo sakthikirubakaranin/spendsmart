@@ -1,0 +1,76 @@
+version: "3.9"
+
+services:
+
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: spendsmart
+      POSTGRES_USER: spendsmart
+      POSTGRES_PASSWORD: spendsmart_secret
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U spendsmart"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build: .
+    restart: unless-stopped
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - .:/app
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://spendsmart:spendsmart_secret@db:5432/spendsmart
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build: .
+    restart: unless-stopped
+    command: celery -A tasks.celery_app worker --loglevel=info --concurrency=2
+    volumes:
+      - .:/app
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://spendsmart:spendsmart_secret@db:5432/spendsmart
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - api
+      - redis
+
+  beat:
+    build: .
+    restart: unless-stopped
+    command: celery -A tasks.celery_app beat --loglevel=info
+    volumes:
+      - .:/app
+    env_file: .env
+    depends_on:
+      - worker
+
+volumes:
+  pgdata:

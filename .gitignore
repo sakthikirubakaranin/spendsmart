@@ -1,0 +1,33 @@
+# Environment files — never commit these
+.env
+.env.*
+!.env.production.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+dist/
+build/
+venv/
+.venv/
+env/
+
+# Node
+node_modules/
+dist/
+
+# GCP key — never commit
+gcp-sa-key.json
+*.json.key
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/

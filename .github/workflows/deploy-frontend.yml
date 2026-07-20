@@ -1,0 +1,43 @@
+name: Deploy Frontend → Firebase Hosting
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'spendsmart-ui/**'
+      - '.github/workflows/deploy-frontend.yml'
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: spendsmart-ui/package-lock.json
+
+      - name: Install dependencies
+        working-directory: spendsmart-ui
+        run: npm ci
+
+      - name: Build
+        working-directory: spendsmart-ui
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+        run: npm run build
+
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          channelId: live
+          projectId: ${{ secrets.FIREBASE_PROJECT_ID }}
+          entryPoint: spendsmart-ui
