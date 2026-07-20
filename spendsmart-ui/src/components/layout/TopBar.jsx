@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Bell, Plus, Search, X, ChevronDown, AlertTriangle, TrendingUp, ExternalLink, Receipt, Command } from 'lucide-react'
+import { Bell, Plus, Search, X, ChevronDown, AlertTriangle, TrendingUp, ExternalLink, Receipt, Command, ScanLine } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { incomeApi } from '../../api/income'
 import { expensesApi } from '../../api/expenses'
 import { analyticsApi } from '../../api/analytics'
 import { formatINR } from '../../utils/currency'
+import ScanReceiptModal from '../ScanReceiptModal'
 
 const DATE_FILTERS = ['This Month', 'Last Month', 'Last 3 Months', 'Last 6 Months', 'Last Year']
 
@@ -480,6 +481,7 @@ export default function TopBar({ title = 'Dashboard', activeFilter, onFilterChan
   const [dropdown, setDropdown] = useState(false)
   const [modal, setModal] = useState(null)   // null | 'income' | 'expense'
   const [showSearch, setShowSearch] = useState(false)
+  const [showScan, setShowScan] = useState(false)
 
   // Cmd+K / Ctrl+K opens search
   useEffect(() => {
@@ -532,6 +534,15 @@ export default function TopBar({ title = 'Dashboard', activeFilter, onFilterChan
             </kbd>
           </button>
 
+          {/* Scan Receipt */}
+          <button onClick={() => setShowScan(true)}
+            title="Scan receipt"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-slate-200 transition-colors"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+            <ScanLine size={14} />
+            <span className="text-xs hidden lg:block">Scan</span>
+          </button>
+
           <AlertBell />
 
           {/* Split button: Add Expense (primary) + dropdown for Add Income */}
@@ -573,6 +584,7 @@ export default function TopBar({ title = 'Dashboard', activeFilter, onFilterChan
       {modal === 'income'  && <AddIncomeModal  onClose={() => setModal(null)} onSaved={handleSaved} />}
       {modal === 'expense' && <AddExpenseModal onClose={() => setModal(null)} onSaved={handleSaved} />}
       {showSearch && <SearchModal onClose={() => setShowSearch(false)} />}
+      {showScan   && <ScanReceiptModal onClose={() => setShowScan(false)} onSaved={handleSaved} />}
     </>
   )
 }

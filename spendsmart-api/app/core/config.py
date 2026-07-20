@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     # Firebase (for social login token verification)
     FIREBASE_PROJECT_ID: str = "spendsmart-8d997"
 
+    # Gemini AI (receipt OCR)
+    GOOGLE_AI_API_KEY: str = ""
+
     # App
     APP_ENV: str = "development"
     FRONTEND_URL: str = "http://localhost:5173"

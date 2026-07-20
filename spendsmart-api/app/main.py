@@ -10,7 +10,7 @@ from slowapi.util import get_remote_address
 from app.core.config import settings
 from app.core.database import Base, engine
 import app.models  # noqa: F401 — ensures ALL models register with Base.metadata before create_all
-from app.routers import analytics, auth, budgets, categories, expenses, groups, imports, income, recurring, users
+from app.routers import analytics, auth, budgets, categories, expenses, groups, imports, income, ocr, recurring, users
 
 # ── Rate limiter ──────────────────────────────────────────────────────────────
 limiter = Limiter(key_func=get_remote_address, default_limits=["200/minute"])
@@ -105,6 +105,7 @@ app.include_router(income.router, prefix=API_PREFIX)
 app.include_router(users.router, prefix=API_PREFIX)
 app.include_router(recurring.router, prefix=API_PREFIX)
 app.include_router(groups.router, prefix=API_PREFIX)
+app.include_router(ocr.router, prefix=API_PREFIX)
 
 
 # ── Health check ─────────────────────────────────────────────────────────────

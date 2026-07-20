@@ -33,6 +33,9 @@ python-magic==0.4.27
 scikit-learn==1.5.0
 joblib==1.4.2
 
+# Receipt OCR via Gemini Vision
+google-generativeai==0.7.2
+
 # PDF generation
 weasyprint==62.3
 
