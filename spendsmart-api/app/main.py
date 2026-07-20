@@ -15,6 +15,35 @@ from app.routers import analytics, auth, budgets, categories, expenses, groups, 
 limiter = Limiter(key_func=get_remote_address, default_limits=["200/minute"])
 
 
+# ── Category seed data ────────────────────────────────────────────────────────
+# (slug, name, icon, sort_order)
+CATEGORY_SEEDS: list[tuple[str, str, str, int]] = [
+    ("food_dining",       "Food & Dining",       "🍽️",  10),
+    ("grocery",           "Grocery",             "🛒",  20),
+    ("transport",         "Transport",           "🚗",  30),
+    ("fuel",              "Fuel",                "⛽",  40),
+    ("utilities",         "Utilities",           "💡",  50),
+    ("housing",           "Housing & Rent",      "🏠",  60),
+    ("health_medical",    "Health & Medical",    "💊",  70),
+    ("personal_care",     "Personal Care",       "💅",  80),
+    ("online_shopping",   "Online Shopping",     "🛍️",  90),
+    ("entertainment",     "Entertainment",       "🎭", 100),
+    ("ott_subscriptions", "OTT & Subscriptions", "📺", 110),
+    ("cloud_services",    "Cloud & Dev Tools",   "☁️", 120),
+    ("education",         "Education",           "📚", 130),
+    ("fitness",           "Fitness",             "💪", 140),
+    ("travel",            "Travel",              "✈️", 150),
+    ("insurance",         "Insurance",           "🛡️", 160),
+    ("loan_emi",          "Loan & EMI",          "🏦", 170),
+    ("tax",               "Tax",                 "📋", 180),
+    ("credit_card_bill",  "Credit Card Bill",    "💳", 190),
+    ("savings",           "Savings & Gold",      "🪙", 200),
+    ("savings_investment","Investments",         "📈", 210),
+    ("family_transfer",   "Family & Friends",    "👨‍👩‍👧", 220),
+    ("others",            "Others",              "📦", 999),
+]
+
+
 # ── Lifespan: create tables on startup (Alembic handles production migrations) ─
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -22,6 +51,18 @@ async def lifespan(app: FastAPI):
         # In production use `alembic upgrade head` instead.
         # This is a safety net for first run / dev.
         await conn.run_sync(Base.metadata.create_all)
+
+        # Seed system categories — idempotent (ON CONFLICT DO NOTHING)
+        for slug, name, icon, sort_order in CATEGORY_SEEDS:
+            await conn.execute(
+                __import__("sqlalchemy").text(
+                    "INSERT INTO categories (slug, name, icon, sort_order, is_system) "
+                    "VALUES (:slug, :name, :icon, :sort_order, true) "
+                    "ON CONFLICT (slug) DO NOTHING"
+                ),
+                {"slug": slug, "name": name, "icon": icon, "sort_order": sort_order},
+            )
+
     yield
     await engine.dispose()
 
