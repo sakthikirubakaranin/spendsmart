@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
-import { TrendingUp, TrendingDown, Wallet, ArrowDownCircle, ArrowUpCircle, Zap } from 'lucide-react'
+import { TrendingUp, TrendingDown, Wallet, ArrowDownCircle, ArrowUpCircle, Zap, AlertTriangle, ChevronRight } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import Layout from '../components/layout/Layout'
 import SpendingDonut from '../components/dashboard/SpendingDonut'
 import MonthlyTrend from '../components/dashboard/MonthlyTrend'
+import TopCategories from '../components/dashboard/TopCategories'
 import BudgetBars from '../components/dashboard/BudgetBars'
 import RecentTransactions from '../components/dashboard/RecentTransactions'
 import { analyticsApi } from '../api/analytics'
@@ -78,35 +80,40 @@ function Skeleton({ className = '' }) {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function DashboardPage() {
+  const navigate = useNavigate()
   const [filter, setFilter]               = useState('Last Month')
   const [summary, setSummary]             = useState(null)
   const [categoryData, setCategoryData]   = useState([])
   const [trendData, setTrendData]         = useState([])
   const [budgetStatus, setBudgetStatus]   = useState([])
+  const [budgetAlerts, setBudgetAlerts]   = useState([])
   const [recentExpenses, setRecentExpenses] = useState([])
   const [loading, setLoading]             = useState(true)
   const [error, setError]                 = useState('')
+
+  async function fetchAll(params) {
+    const [s, cat, trend, budget, alerts, expenses] = await Promise.all([
+      analyticsApi.summary(params),
+      analyticsApi.byCategory(params),
+      analyticsApi.monthlyTrend(6),
+      analyticsApi.budgetStatus(),
+      analyticsApi.alerts().catch(() => ({ alerts: [] })),
+      expensesApi.list({ per_page: 10, sort: 'date_desc' }),
+    ])
+    setSummary(s)
+    setCategoryData(cat.categories || [])
+    setTrendData(trend)
+    setBudgetStatus(budget)
+    setBudgetAlerts(alerts.alerts || [])
+    setRecentExpenses(expenses.items || [])
+  }
 
   useEffect(() => {
     setLoading(true)
     setError('')
     const { from, to } = getDateRange(filter)
     const params = from ? { from_date: from, to_date: to } : {}
-
-    Promise.all([
-      analyticsApi.summary(params),
-      analyticsApi.byCategory(params),
-      analyticsApi.monthlyTrend(6),
-      analyticsApi.budgetStatus(),
-      expensesApi.list({ per_page: 10, sort: 'date_desc' }),
-    ])
-      .then(([s, cat, trend, budget, expenses]) => {
-        setSummary(s)
-        setCategoryData(cat.categories || [])
-        setTrendData(trend)
-        setBudgetStatus(budget)
-        setRecentExpenses(expenses.items || [])
-      })
+    fetchAll(params)
       .catch(() => setError('Failed to load dashboard data'))
       .finally(() => setLoading(false))
   }, [filter])
@@ -114,24 +121,9 @@ export default function DashboardPage() {
   const netPositive = (summary?.net_balance ?? 0) >= 0
 
   function refreshAll() {
-    setFilter(f => f)  // trigger useEffect by toggling — use a key instead
     const { from, to } = getDateRange(filter)
     const params = from ? { from_date: from, to_date: to } : {}
-    Promise.all([
-      analyticsApi.summary(params),
-      analyticsApi.byCategory(params),
-      analyticsApi.monthlyTrend(6),
-      analyticsApi.budgetStatus(),
-      expensesApi.list({ per_page: 10, sort: 'date_desc' }),
-    ])
-      .then(([s, cat, trend, budget, expenses]) => {
-        setSummary(s)
-        setCategoryData(cat.categories || [])
-        setTrendData(trend)
-        setBudgetStatus(budget)
-        setRecentExpenses(expenses.items || [])
-      })
-      .catch(() => {})
+    fetchAll(params).catch(() => {})
   }
 
   return (
@@ -144,13 +136,32 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* ── Budget alerts banner ── */}
+      {!loading && budgetAlerts.length > 0 && (
+        <div className="mb-5 rounded-xl px-4 py-3 flex items-center gap-3 cursor-pointer hover:opacity-90 transition-opacity"
+          style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)' }}
+          onClick={() => navigate('/budgets')}>
+          <AlertTriangle size={16} className="text-amber-400 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <span className="text-amber-300 text-sm font-medium">
+              {budgetAlerts.filter(a => a.status === 'over').length > 0
+                ? `${budgetAlerts.filter(a => a.status === 'over').length} budget${budgetAlerts.filter(a => a.status === 'over').length > 1 ? 's' : ''} exceeded this month`
+                : `${budgetAlerts.length} budget${budgetAlerts.length > 1 ? 's' : ''} nearing limit`}
+            </span>
+            <span className="text-amber-500 text-xs ml-2">
+              {budgetAlerts.slice(0,2).map(a => `${a.category_icon} ${a.category_name} (${a.pct}%)`).join(' · ')}
+            </span>
+          </div>
+          <ChevronRight size={14} className="text-amber-500 flex-shrink-0" />
+        </div>
+      )}
+
       {/* ── Top metric cards ── */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
         {loading ? (
           Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-36" />)
         ) : (
           <>
-            {/* Total Income */}
             <MetricCard
               label="Total Income"
               value={formatINR(summary?.total_income ?? 0)}
@@ -159,8 +170,6 @@ export default function DashboardPage() {
               icon={ArrowDownCircle}
               accent="green"
             />
-
-            {/* Total Spent */}
             <MetricCard
               label="Total Spent"
               value={formatINR(summary?.total_spent ?? 0)}
@@ -169,8 +178,6 @@ export default function DashboardPage() {
               icon={ArrowUpCircle}
               accent="rose"
             />
-
-            {/* Net Balance */}
             <MetricCard
               label="Net Balance"
               value={formatINR(Math.abs(summary?.net_balance ?? 0))}
@@ -179,12 +186,10 @@ export default function DashboardPage() {
               icon={Wallet}
               accent={netPositive ? 'cyan' : 'amber'}
             />
-
-            {/* Transactions */}
             <MetricCard
-              label="Transactions"
-              value={summary?.total_transactions ?? 0}
-              sub={`largest: ${formatINR(summary?.largest_expense?.amount ?? 0)}`}
+              label="Projected Month"
+              value={formatINR(summary?.projected_month_total ?? 0)}
+              sub={summary?.days_remaining > 0 ? `${summary.days_remaining} days remaining` : 'month complete'}
               trend={null}
               icon={Zap}
               accent="purple"
@@ -193,18 +198,21 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* ── Charts ── */}
+      {/* ── Monthly trend + Top Categories ── */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-6">
         <div className="xl:col-span-2">
           {loading ? <Skeleton className="h-64" /> : <MonthlyTrend data={trendData} />}
         </div>
         <div>
-          {loading ? <Skeleton className="h-64" /> : <SpendingDonut data={categoryData} />}
+          {loading ? <Skeleton className="h-64" /> : <TopCategories data={categoryData} />}
         </div>
       </div>
 
-      {/* ── Budget + Transactions ── */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      {/* ── Donut + Budget + Transactions ── */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <div>
+          {loading ? <Skeleton className="h-64" /> : <SpendingDonut data={categoryData} />}
+        </div>
         <div>
           {loading ? <Skeleton className="h-64" /> : <BudgetBars data={budgetStatus} />}
         </div>

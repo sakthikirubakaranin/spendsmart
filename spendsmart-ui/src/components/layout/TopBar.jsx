@@ -502,7 +502,7 @@ export default function TopBar({ title = 'Dashboard', activeFilter, onFilterChan
   return (
     <>
       <header className="flex items-center justify-between px-8 py-4 sticky top-0 z-30"
-        style={{ background: 'rgba(7,7,15,0.85)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+        style={{ background: 'var(--bg-topbar)', backdropFilter: 'blur(16px)', borderBottom: '1px solid var(--border-subtle)' }}>
 
         {/* Left */}
         <div className="flex items-center gap-6">

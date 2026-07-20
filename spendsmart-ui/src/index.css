@@ -2,16 +2,51 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Theme variables ────────────────────────────────────────────────────────── */
+:root {
+  /* Dark theme (default) */
+  --bg-void:          #07070f;
+  --bg-surface:       rgba(255,255,255,0.03);
+  --bg-surface-hover: rgba(255,255,255,0.06);
+  --bg-sidebar:       #0a0a16;
+  --bg-topbar:        rgba(7,7,15,0.85);
+  --bg-card:          #0f0f1e;
+  --border-subtle:    rgba(255,255,255,0.07);
+  --border-medium:    rgba(255,255,255,0.12);
+  --text-primary:     #f1f5f9;
+  --text-secondary:   #94a3b8;
+  --text-muted:       #475569;
+  --scrollbar-track:  #0e0e1a;
+  --scrollbar-thumb:  #2d2d44;
+}
+
+html[data-theme="light"] {
+  --bg-void:          #f4f6fb;
+  --bg-surface:       rgba(255,255,255,0.85);
+  --bg-surface-hover: rgba(255,255,255,1);
+  --bg-sidebar:       #ffffff;
+  --bg-topbar:        rgba(244,246,251,0.92);
+  --bg-card:          #ffffff;
+  --border-subtle:    rgba(0,0,0,0.08);
+  --border-medium:    rgba(0,0,0,0.15);
+  --text-primary:     #0f172a;
+  --text-secondary:   #334155;
+  --text-muted:       #64748b;
+  --scrollbar-track:  #e2e8f0;
+  --scrollbar-thumb:  #94a3b8;
+}
+
 @layer base {
   * {
     box-sizing: border-box;
   }
 
   body {
-    background-color: #07070f;
-    color: #f1f5f9;
+    background-color: var(--bg-void);
+    color: var(--text-primary);
     font-family: 'Inter', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   ::-webkit-scrollbar {
@@ -20,19 +55,19 @@
   }
 
   ::-webkit-scrollbar-track {
-    background: #0e0e1a;
+    background: var(--scrollbar-track);
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #2d2d44;
+    background: var(--scrollbar-thumb);
     border-radius: 2px;
   }
 }
 
 @layer utilities {
   .glass {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.07);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
     backdrop-filter: blur(12px);
   }
 
@@ -41,8 +76,8 @@
   }
 
   .glass-hover:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.12);
+    background: var(--bg-surface-hover);
+    border-color: var(--border-medium);
   }
 
   .gradient-text {

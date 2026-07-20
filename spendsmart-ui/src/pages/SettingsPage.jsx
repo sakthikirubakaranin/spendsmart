@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   User, Bell, Shield, Database, Save, CheckCircle,
-  Eye, EyeOff, Trash2, AlertTriangle, X, Loader2,
+  Eye, EyeOff, Trash2, AlertTriangle, X, Loader2, Palette,
+  Moon, Sun, Monitor,
 } from 'lucide-react'
 import Layout from '../components/layout/Layout'
 import { usersApi } from '../api/users'
 import { useAuth } from '../hooks/useAuth'
+import { useTheme } from '../context/ThemeContext'
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
@@ -72,6 +74,7 @@ function InlineAlert({ type, msg, onClose }) {
 
 const TABS = [
   { id: 'profile',       label: 'Profile',        icon: User     },
+  { id: 'appearance',    label: 'Appearance',      icon: Palette  },
   { id: 'security',      label: 'Security',        icon: Shield   },
   { id: 'notifications', label: 'Notifications',   icon: Bell     },
   { id: 'data',          label: 'Data & Privacy',  icon: Database },
@@ -80,6 +83,7 @@ const TABS = [
 export default function SettingsPage() {
   const navigate = useNavigate()
   const { logout, updateUser } = useAuth()
+  const { theme, setDark, setLight } = useTheme()
   const [tab, setTab] = useState('profile')
 
   // Profile
@@ -307,6 +311,97 @@ export default function SettingsPage() {
                     <option disabled>$ USD (soon)</option>
                     <option disabled>€ EUR (soon)</option>
                   </select>
+                </Row>
+              </Section>
+            </div>
+          )}
+
+          {/* ── Appearance ───────────────────────────────────────────────── */}
+          {tab === 'appearance' && (
+            <div>
+              <h2 className="text-base font-semibold text-slate-200 mb-5">Appearance</h2>
+
+              <Section title="Theme">
+                <div className="px-5 py-5">
+                  <p className="text-xs text-slate-500 mb-4">Choose how SpendSmart looks on this device.</p>
+                  <div className="grid grid-cols-2 gap-3">
+
+                    {/* Dark */}
+                    <button
+                      onClick={setDark}
+                      className="relative flex flex-col items-start gap-3 p-4 rounded-xl border transition-all text-left"
+                      style={{
+                        background: theme === 'dark' ? 'rgba(139,92,246,0.1)' : 'rgba(255,255,255,0.03)',
+                        borderColor: theme === 'dark' ? 'rgba(139,92,246,0.5)' : 'rgba(255,255,255,0.08)',
+                      }}
+                    >
+                      {/* Preview swatch */}
+                      <div className="w-full h-16 rounded-lg overflow-hidden flex-shrink-0"
+                        style={{ background: '#07070f', border: '1px solid rgba(255,255,255,0.08)' }}>
+                        <div className="flex h-full">
+                          <div className="w-1/4 h-full" style={{ background: '#0a0a16' }} />
+                          <div className="flex-1 p-2 flex flex-col gap-1">
+                            <div className="h-2 w-3/4 rounded" style={{ background: 'rgba(255,255,255,0.08)' }} />
+                            <div className="h-2 w-1/2 rounded" style={{ background: 'rgba(139,92,246,0.4)' }} />
+                            <div className="h-2 w-2/3 rounded" style={{ background: 'rgba(255,255,255,0.05)' }} />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Moon size={14} className="text-violet-400" />
+                        <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Dark</span>
+                      </div>
+                      {theme === 'dark' && (
+                        <span className="absolute top-2.5 right-2.5 w-4 h-4 rounded-full flex items-center justify-center"
+                          style={{ background: 'rgba(139,92,246,0.9)' }}>
+                          <CheckCircle size={10} className="text-white" />
+                        </span>
+                      )}
+                    </button>
+
+                    {/* Light */}
+                    <button
+                      onClick={setLight}
+                      className="relative flex flex-col items-start gap-3 p-4 rounded-xl border transition-all text-left"
+                      style={{
+                        background: theme === 'light' ? 'rgba(139,92,246,0.1)' : 'rgba(255,255,255,0.03)',
+                        borderColor: theme === 'light' ? 'rgba(139,92,246,0.5)' : 'rgba(255,255,255,0.08)',
+                      }}
+                    >
+                      {/* Preview swatch */}
+                      <div className="w-full h-16 rounded-lg overflow-hidden flex-shrink-0"
+                        style={{ background: '#f4f6fb', border: '1px solid rgba(0,0,0,0.08)' }}>
+                        <div className="flex h-full">
+                          <div className="w-1/4 h-full" style={{ background: '#ffffff' }} />
+                          <div className="flex-1 p-2 flex flex-col gap-1">
+                            <div className="h-2 w-3/4 rounded" style={{ background: 'rgba(0,0,0,0.1)' }} />
+                            <div className="h-2 w-1/2 rounded" style={{ background: 'rgba(139,92,246,0.5)' }} />
+                            <div className="h-2 w-2/3 rounded" style={{ background: 'rgba(0,0,0,0.06)' }} />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Sun size={14} className="text-amber-400" />
+                        <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Light</span>
+                      </div>
+                      {theme === 'light' && (
+                        <span className="absolute top-2.5 right-2.5 w-4 h-4 rounded-full flex items-center justify-center"
+                          style={{ background: 'rgba(139,92,246,0.9)' }}>
+                          <CheckCircle size={10} className="text-white" />
+                        </span>
+                      )}
+                    </button>
+
+                  </div>
+                </div>
+              </Section>
+
+              <Section title="Accent">
+                <Row label="Accent Colour" sub="Purple → Cyan gradient — more themes coming soon">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-md" style={{ background: 'linear-gradient(135deg, #8b5cf6, #06b6d4)' }} />
+                    <span className="text-xs text-slate-500">Purple / Cyan</span>
+                  </div>
                 </Row>
               </Section>
             </div>

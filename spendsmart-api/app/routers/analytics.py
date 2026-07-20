@@ -218,20 +218,68 @@ async def monthly_trend(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    result = await db.execute(
+    from datetime import date as date_type
+
+    today = date_type.today()
+
+    # Build ordered list of N months ending this month
+    month_list: list[tuple[int, int]] = []
+    y, m = today.year, today.month
+    for _ in range(months):
+        month_list.append((y, m))
+        m -= 1
+        if m == 0:
+            m = 12
+            y -= 1
+    month_list.reverse()
+
+    earliest = date_type(month_list[0][0], month_list[0][1], 1)
+
+    # Expense totals per month
+    exp_result = await db.execute(
         select(
-            extract("year", Expense.date).label("year"),
+            extract("year",  Expense.date).label("year"),
             extract("month", Expense.date).label("month"),
             func.sum(Expense.amount).label("total"),
         )
-        .where(Expense.user_id == current_user.id, Expense.is_deleted == False)
+        .where(
+            Expense.user_id == current_user.id,
+            Expense.is_deleted == False,
+            Expense.date >= earliest,
+        )
         .group_by("year", "month")
         .order_by("year", "month")
-        .limit(months)
     )
+    expense_map = {(int(r.year), int(r.month)): float(r.total) for r in exp_result.all()}
+
+    # Income totals per month — use period_month when set, else truncate date
+    effective_month = func.coalesce(
+        Income.period_month,
+        func.date_trunc("month", Income.date).cast(Income.date.type),
+    )
+    inc_result = await db.execute(
+        select(
+            extract("year",  effective_month).label("year"),
+            extract("month", effective_month).label("month"),
+            func.sum(Income.amount).label("income_total"),
+        )
+        .where(
+            Income.user_id == current_user.id,
+            effective_month >= earliest,
+        )
+        .group_by("year", "month")
+        .order_by("year", "month")
+    )
+    income_map = {(int(r.year), int(r.month)): float(r.income_total) for r in inc_result.all()}
+
     return [
-        {"year": int(r.year), "month": int(r.month), "total": float(r.total)}
-        for r in result.all()
+        {
+            "year":    ym[0],
+            "month":   ym[1],
+            "total":   expense_map.get(ym, 0),
+            "income":  income_map.get(ym, 0),
+        }
+        for ym in month_list
     ]
 
 

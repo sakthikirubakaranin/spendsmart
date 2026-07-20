@@ -1,9 +1,10 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Receipt, Upload, PieChart,
-  Target, Lightbulb, Repeat, FileText, Settings, Zap, LogOut, Users, SplitSquareVertical
+  Target, Lightbulb, Repeat, FileText, Settings, LogOut, Users, SplitSquareVertical
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
+import Logo from '../Logo'
 
 const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -33,15 +34,11 @@ export default function Sidebar() {
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-[220px] flex flex-col z-40"
-      style={{ background: '#0a0a16', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
+      style={{ background: 'var(--bg-sidebar)', borderRight: '1px solid var(--border-subtle)' }}>
 
       {/* Logo */}
-      <div className="flex items-center gap-3 px-5 py-6">
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center"
-          style={{ background: 'linear-gradient(135deg, #8b5cf6, #06b6d4)' }}>
-          <Zap size={16} className="text-white" />
-        </div>
-        <span className="font-bold text-[15px] tracking-wide gradient-text">SpendSmart</span>
+      <div className="px-5 py-6">
+        <Logo size={30} />
       </div>
 
       {/* Nav */}
@@ -67,7 +64,7 @@ export default function Sidebar() {
       </nav>
 
       {/* User + logout */}
-      <div className="px-3 py-4 border-t space-y-1" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+      <div className="px-3 py-4 border-t space-y-1" style={{ borderColor: 'var(--border-subtle)' }}>
         <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg">
           <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
             style={{ background: 'linear-gradient(135deg, #8b5cf6, #06b6d4)' }}>
