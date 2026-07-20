@@ -9,6 +9,7 @@ from slowapi.util import get_remote_address
 
 from app.core.config import settings
 from app.core.database import Base, engine
+import app.models  # noqa: F401 — ensures ALL models register with Base.metadata before create_all
 from app.routers import analytics, auth, budgets, categories, expenses, groups, imports, income, recurring, users
 
 # ── Rate limiter ──────────────────────────────────────────────────────────────
