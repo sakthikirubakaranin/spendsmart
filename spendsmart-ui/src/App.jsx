@@ -14,6 +14,8 @@ import RegisterPage from './pages/RegisterPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 import RecurringPage from './pages/RecurringPage'
+import GroupsPage from './pages/GroupsPage'
+import GroupDetailPage from './pages/GroupDetailPage'
 
 function RequireAuth({ children }) {
   const { user, loading } = useAuth()
@@ -52,6 +54,8 @@ export default function App() {
         <Route path="/tips" element={<RequireAuth><TipsPage /></RequireAuth>} />
         <Route path="/reports" element={<RequireAuth><ReportsPage /></RequireAuth>} />
         <Route path="/recurring" element={<RequireAuth><RecurringPage /></RequireAuth>} />
+        <Route path="/groups" element={<RequireAuth><GroupsPage /></RequireAuth>} />
+        <Route path="/groups/:id" element={<RequireAuth><GroupDetailPage /></RequireAuth>} />
         <Route path="/settings" element={<RequireAuth><SettingsPage /></RequireAuth>} />
       </Routes>
     </AuthProvider>
