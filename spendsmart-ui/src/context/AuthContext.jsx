@@ -30,12 +30,18 @@ export function AuthProvider({ children }) {
     setUser(null)
   }, [])
 
+  const socialLogin = useCallback(async (id_token) => {
+    const userData = await authApi.socialLogin(id_token)
+    setUser(userData)
+    return userData
+  }, [])
+
   const updateUser = useCallback((patch) => {
     setUser((prev) => ({ ...prev, ...patch }))
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, socialLogin, updateUser }}>
       {children}
     </AuthContext.Provider>
   )

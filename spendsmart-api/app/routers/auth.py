@@ -26,6 +26,7 @@ from app.schemas.auth import (
     RefreshRequest,
     RegisterRequest,
     ResetPasswordRequest,
+    SocialLoginRequest,
     TokenResponse,
     UserOut,
     VerifyEmailRequest,
@@ -116,6 +117,9 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
     if user.locked_until and user.locked_until > datetime.now(timezone.utc):
         remaining = int((user.locked_until - datetime.now(timezone.utc)).total_seconds() / 60) + 1
         raise HTTPException(status_code=429, detail=f"Account locked. Try again in {remaining} minute(s).")
+
+    if not user.password_hash:
+        raise HTTPException(status_code=400, detail="This account uses Google sign-in. Please use 'Sign in with Google'.")
 
     if not verify_password(body.password, user.password_hash):
         user.failed_login_attempts += 1
@@ -219,3 +223,77 @@ async def reset_password(body: ResetPasswordRequest, db: AsyncSession = Depends(
 @router.get("/me", response_model=UserOut)
 async def me(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+# ── Social login (Google via Firebase) ───────────────────────────────────────
+
+async def _verify_firebase_token(id_token: str) -> dict:
+    """Verify a Firebase ID token using Google's public JWK endpoint."""
+    import httpx
+    from jose import jwt as jose_jwt, JWTError
+    from jose.backends import RSAKey
+
+    jwks_url = "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com"
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(jwks_url)
+        resp.raise_for_status()
+        jwks = resp.json()
+
+    header = jose_jwt.get_unverified_header(id_token)
+    kid = header.get("kid")
+    key_data = next((k for k in jwks.get("keys", []) if k.get("kid") == kid), None)
+    if not key_data:
+        raise ValueError("No matching public key found for token")
+
+    public_key = RSAKey(key_data, algorithm="RS256")
+    payload = jose_jwt.decode(
+        id_token,
+        public_key,
+        algorithms=["RS256"],
+        audience=settings.FIREBASE_PROJECT_ID,
+        issuer=f"https://securetoken.google.com/{settings.FIREBASE_PROJECT_ID}",
+    )
+    return payload
+
+
+@router.post("/social", response_model=TokenResponse)
+async def social_login(body: SocialLoginRequest, db: AsyncSession = Depends(get_db)):
+    try:
+        payload = await _verify_firebase_token(body.id_token)
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid or expired Google token")
+
+    email = payload.get("email")
+    name = payload.get("name") or payload.get("email", "").split("@")[0]
+    email_verified = payload.get("email_verified", False)
+
+    if not email or not email_verified:
+        raise HTTPException(status_code=400, detail="Google account must have a verified email")
+
+    # Find or create user
+    result = await db.execute(select(User).where(User.email == email))
+    user = result.scalar_one_or_none()
+
+    if user:
+        # Existing user — update provider if needed and log in
+        if user.auth_provider == "local":
+            user.auth_provider = "google"  # link accounts
+        user.last_login_at = datetime.now(timezone.utc)
+    else:
+        # New user via Google
+        user = User(
+            email=email,
+            full_name=name,
+            password_hash=None,
+            auth_provider="google",
+            is_verified=True,
+            is_active=True,
+        )
+        db.add(user)
+        await db.flush()
+        db.add(NotificationPreference(user_id=user.id))
+
+    await db.commit()
+    await db.refresh(user)
+    return _build_token_response(user)

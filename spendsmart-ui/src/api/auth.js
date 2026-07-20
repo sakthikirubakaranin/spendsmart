@@ -32,4 +32,12 @@ export const authApi = {
     client
       .post('/auth/reset-password', { email, otp, new_password })
       .then((r) => r.data),
+
+  socialLogin: async (id_token) => {
+    const res = await client.post('/auth/social', { id_token })
+    const { access_token, refresh_token, user } = res.data
+    localStorage.setItem('access_token', access_token)
+    localStorage.setItem('refresh_token', refresh_token)
+    return user
+  },
 };

@@ -1,0 +1,16 @@
+[debug] [2026-07-20T13:50:01.322Z] ----------------------------------------------------------------------
+[debug] [2026-07-20T13:50:01.326Z] Command:       /opt/homebrew/Cellar/node/26.3.0/bin/node /opt/homebrew/bin/firebase login --no-localhost
+[debug] [2026-07-20T13:50:01.326Z] CLI Version:   15.24.0
+[debug] [2026-07-20T13:50:01.326Z] Platform:      darwin
+[debug] [2026-07-20T13:50:01.326Z] Node Version:  v26.3.0
+[debug] [2026-07-20T13:50:01.326Z] Detected Agent: unknown
+[debug] [2026-07-20T13:50:01.326Z] Time:          Mon Jul 20 2026 19:20:01 GMT+0530 (India Standard Time)
+[debug] [2026-07-20T13:50:01.326Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-07-20T13:50:01.338Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[info] i  The Firebase CLI’s MCP server feature can optionally make use of Gemini in Firebase. Learn more about Gemini in Firebase and how it uses your data: https://firebase.google.com/docs/gemini-in-firebase#how-gemini-in-firebase-uses-your-data 
+[debug] [2026-07-20T13:50:01.345Z] *** [apiv2] error from fetch(https://firebase-public.firebaseio.com/cli.json, {"headers":{},"method":"GET","dispatcher":{"_events":{},"_eventsCount":0}}): InvalidArgumentError: invalid onError method
+[warn] ⚠  Unable to fetch the CLI MOTD and remote config. This is not a fatal error, but may indicate an issue with your network connection. 
+[debug] [2026-07-20T13:50:01.345Z] Failed to fetch MOTD FirebaseError: Failed to make request to https://firebase-public.firebaseio.com/cli.json
+[info] 
+[info] i  Firebase optionally collects CLI and Emulator Suite usage and error reporting information to help improve our products. Data is collected in accordance with Google's privacy policy (https://policies.google.com/privacy) and is not used to identify you. 

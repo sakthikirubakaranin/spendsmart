@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     MAIL_TLS: bool = True
     MAIL_SSL: bool = False
 
+    # Firebase (for social login token verification)
+    FIREBASE_PROJECT_ID: str = "spendsmart-8d997"
+
     # App
     APP_ENV: str = "development"
     FRONTEND_URL: str = "http://localhost:5173"

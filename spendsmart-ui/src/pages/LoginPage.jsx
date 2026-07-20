@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, Zap, Shield, TrendingUp, Brain } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
+import { signInWithGoogle } from '../lib/firebase'
 
 const features = [
   { icon: TrendingUp, label: 'Real-time analytics' },
@@ -12,13 +13,29 @@ const features = [
 
 export default function LoginPage() {
   const navigate = useNavigate()
-  const { login } = useAuth()
+  const { login, socialLogin } = useAuth()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPw, setShowPw] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState('')
+
+  async function handleGoogleLogin() {
+    setError('')
+    setGoogleLoading(true)
+    try {
+      const idToken = await signInWithGoogle()
+      await socialLogin(idToken)
+      navigate('/dashboard', { replace: true })
+    } catch (err) {
+      const detail = err?.response?.data?.detail
+      setError(detail || 'Google sign-in failed. Please try again.')
+    } finally {
+      setGoogleLoading(false)
+    }
+  }
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -145,7 +162,34 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="text-center text-white/40 text-sm mt-6">
+          {/* Divider */}
+          <div className="flex items-center gap-3 my-5">
+            <div className="flex-1 h-px bg-white/10" />
+            <span className="text-white/30 text-xs">or</span>
+            <div className="flex-1 h-px bg-white/10" />
+          </div>
+
+          {/* Google sign-in */}
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            disabled={googleLoading}
+            className="w-full flex items-center justify-center gap-3 py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all text-sm font-medium text-white/80 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {googleLoading ? (
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 48 48">
+                <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.2l6.7-6.7C35.7 2.4 30.2 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.8 6C12.4 13 17.8 9.5 24 9.5z"/>
+                <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4 6.9-10 6.9-17z"/>
+                <path fill="#FBBC05" d="M10.5 28.7A14.6 14.6 0 0 1 9.5 24c0-1.6.3-3.2.7-4.7l-7.8-6A24 24 0 0 0 0 24c0 3.9.9 7.5 2.7 10.7l7.8-6z"/>
+                <path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-7.5-5.8c-2 1.4-4.6 2.2-7.7 2.2-6.2 0-11.5-4.2-13.4-9.9l-7.8 6C6.6 42.6 14.6 48 24 48z"/>
+              </svg>
+            )}
+            Continue with Google
+          </button>
+
+          <p className="text-center text-white/40 text-sm mt-5">
             No account?{' '}
             <Link to="/register" className="text-accent-purple hover:text-accent-purple/80 transition-colors">
               Create one free

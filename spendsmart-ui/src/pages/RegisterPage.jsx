@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, Zap, ArrowRight, Check } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { authApi } from '../api/auth'
+import { signInWithGoogle } from '../lib/firebase'
 
 const steps = ['Account', 'Income', 'First Expense']
 
@@ -26,8 +27,9 @@ function PasswordStrength({ password }) {
 
 export default function RegisterPage() {
   const navigate = useNavigate()
-  const { login } = useAuth()
+  const { login, socialLogin } = useAuth()
   const [step, setStep] = useState(0)
+  const [googleLoading, setGoogleLoading] = useState(false)
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -40,6 +42,21 @@ export default function RegisterPage() {
   const inputStyle = { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }
   const inputFocus = e => e.target.style.borderColor = 'rgba(139,92,246,0.5)'
   const inputBlur = e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'
+
+  async function handleGoogleSignup() {
+    setError('')
+    setGoogleLoading(true)
+    try {
+      const idToken = await signInWithGoogle()
+      await socialLogin(idToken)
+      navigate('/dashboard', { replace: true })
+    } catch (err) {
+      const detail = err?.response?.data?.detail
+      setError(detail || 'Google sign-in failed. Please try again.')
+    } finally {
+      setGoogleLoading(false)
+    }
+  }
 
   const handleNext = async (e) => {
     e.preventDefault()
@@ -108,7 +125,33 @@ export default function RegisterPage() {
               <>
                 <div>
                   <h2 className="text-xl font-bold text-slate-100 mb-1">Create your account</h2>
-                  <p className="text-sm text-slate-500 mb-5">Free forever. No credit card needed.</p>
+                  <p className="text-sm text-slate-500 mb-4">Free forever. No credit card needed.</p>
+                </div>
+
+                {/* Google signup */}
+                <button
+                  type="button"
+                  onClick={handleGoogleSignup}
+                  disabled={googleLoading}
+                  className="w-full flex items-center justify-center gap-3 py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all text-sm font-medium text-white/80 disabled:opacity-50 mb-4"
+                >
+                  {googleLoading ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 48 48">
+                      <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.2l6.7-6.7C35.7 2.4 30.2 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.8 6C12.4 13 17.8 9.5 24 9.5z"/>
+                      <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4 6.9-10 6.9-17z"/>
+                      <path fill="#FBBC05" d="M10.5 28.7A14.6 14.6 0 0 1 9.5 24c0-1.6.3-3.2.7-4.7l-7.8-6A24 24 0 0 0 0 24c0 3.9.9 7.5 2.7 10.7l7.8-6z"/>
+                      <path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-7.5-5.8c-2 1.4-4.6 2.2-7.7 2.2-6.2 0-11.5-4.2-13.4-9.9l-7.8 6C6.6 42.6 14.6 48 24 48z"/>
+                    </svg>
+                  )}
+                  Continue with Google
+                </button>
+
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="flex-1 h-px bg-white/10" />
+                  <span className="text-white/30 text-xs">or sign up with email</span>
+                  <div className="flex-1 h-px bg-white/10" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">Full Name</label>

@@ -83,3 +83,7 @@ class VerifyEmailRequest(BaseModel):
 
 class MessageResponse(BaseModel):
     message: str
+
+
+class SocialLoginRequest(BaseModel):
+    id_token: str  # Firebase ID token from the frontend
