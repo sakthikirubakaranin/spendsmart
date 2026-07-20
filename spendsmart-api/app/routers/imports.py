@@ -25,7 +25,7 @@ from app.models.recurring_expense import RecurringExpense
 from app.models.statement_import import StatementImport
 from app.models.user import User
 from app.services.categorizer import categorize, classify_income
-from app.services.recurring_detector import detect_recurring
+from app.services.recurring_detector import detect_recurring, _merchant_key
 from app.services.statement_parser import parse_statement
 
 router = APIRouter(prefix="/imports", tags=["imports"])
@@ -338,20 +338,19 @@ async def confirm_import(
 
     recurring_detected = 0
     if candidates:
-        # Fetch existing recurring descriptions for this user (lowercased) to dedup
+        # Build a set of merchant_keys already in recurring_expenses for this user.
+        # We normalise existing descriptions through _merchant_key() so that
+        # "CHDFGC9181NRV5/SBI LIFE INS" (stored) → "sbi life ins" (key)
+        # matches any new import of the same merchant regardless of reference numbers.
         existing_rec_q = await db.execute(
-            text("SELECT LOWER(description) FROM recurring_expenses WHERE user_id = :uid"),
+            text("SELECT description FROM recurring_expenses WHERE user_id = :uid"),
             {"uid": str(current_user.id)},
         )
-        existing_rec_keys: set[str] = {r[0] for r in existing_rec_q.fetchall()}
+        existing_keys: set[str] = {_merchant_key(r[0]) for r in existing_rec_q.fetchall()}
 
         for c in candidates:
-            # Skip if a recurring item with a very similar description already exists
-            if c.merchant_key in existing_rec_keys:
-                continue
-            # Also skip if description (lowercased) already stored
-            if c.description.lower() in existing_rec_keys:
-                continue
+            if c.merchant_key in existing_keys:
+                continue   # already tracked — skip
 
             rec = RecurringExpense(
                 id=uuid.uuid4(),
@@ -366,7 +365,7 @@ async def confirm_import(
                 is_active=True,
             )
             db.add(rec)
-            existing_rec_keys.add(c.merchant_key)
+            existing_keys.add(c.merchant_key)   # prevent same-batch dupes too
             recurring_detected += 1
 
         if recurring_detected:
