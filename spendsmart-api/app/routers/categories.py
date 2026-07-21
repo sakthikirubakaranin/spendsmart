@@ -11,7 +11,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
-from sqlalchemy import select, or_
+from sqlalchemy import func, select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -74,6 +74,17 @@ async def create_category(
     name = body.name.strip()
     if not name:
         raise HTTPException(status_code=422, detail="Name cannot be empty")
+
+    # Prevent duplicate names for this user's custom categories
+    dup = await db.execute(
+        select(Category).where(
+            Category.user_id == current_user.id,
+            Category.is_system == False,
+            func.lower(Category.name) == name.lower(),
+        )
+    )
+    if dup.scalar_one_or_none():
+        raise HTTPException(status_code=409, detail=f"Category '{name}' already exists")
 
     # Auto-generate a unique slug: custom_<short_uuid>
     short = str(_uuid.uuid4()).replace("-", "")[:10]

@@ -57,8 +57,8 @@ function CreateCategoryForm({ onCreated, onCancel }) {
     try {
       const cat = await categoriesApi.create({ name: name.trim(), icon })
       onCreated(cat)
-    } catch {
-      setError('Failed to create')
+    } catch (err) {
+      setError(err?.response?.data?.detail || 'Failed to create')
     } finally { setSaving(false) }
   }
 
@@ -264,11 +264,13 @@ function descriptionKeyword(description) {
 }
 
 // ── Inline category picker (table row) ───────────────────────────────────────
-function InlineCategoryPicker({ expense, categories, onSaved, onCategoryCreated, onFixSimilar }) {
-  const [open, setOpen]           = useState(false)
-  const [saving, setSaving]       = useState(false)
-  const [fixPrompt, setFixPrompt] = useState(null)
-  const [fixing, setFixing]       = useState(false)
+// When you pick a category, it auto-applies to ALL expenses with a matching
+// description keyword (all_matching=true). A toast shows how many were updated.
+// The fix-similar prompt is intentionally removed — it lived inside the table's
+// overflow-x-auto container and was clipped invisible.
+function InlineCategoryPicker({ expense, categories, onSaved, onCategoryCreated, onAutoFixed }) {
+  const [open, setOpen]             = useState(false)
+  const [saving, setSaving]         = useState(false)
   const [showCreate, setShowCreate] = useState(false)
   const ref = useRef(null)
 
@@ -283,38 +285,37 @@ function InlineCategoryPicker({ expense, categories, onSaved, onCategoryCreated,
   }, [])
 
   async function pick(catId) {
-    const wasUncategorized = !expense.category
     const prevCatId = expense.category?.id
-    setSaving(true)
-    await expensesApi.update(expense.id, { category_id: catId || null })
-    setSaving(false); setOpen(false); setShowCreate(false)
-    onSaved()
+    // No-op: same category selected
+    if (catId === prevCatId || (!catId && !prevCatId)) { setOpen(false); return }
 
-    // Offer "Fix similar" whenever the category changes
-    if (catId && catId !== prevCatId) {
-      const cat = categories.find(c => c.id === catId)
-      const keyword = descriptionKeyword(expense.description)
-      if (cat && keyword.length >= 3) {
-        setFixPrompt({
-          categoryName: `${cat.icon ?? ''} ${cat.name}`,
-          categoryId: catId,
-          keyword,
-          wasUncategorized,  // affects whether we match only uncategorized or all
-        })
+    setSaving(true); setOpen(false); setShowCreate(false)
+    try {
+      // 1. Update this expense
+      await expensesApi.update(expense.id, { category_id: catId || null })
+      onSaved()
+
+      // 2. Auto-apply to ALL expenses with a similar description keyword
+      if (catId) {
+        const keyword = descriptionKeyword(expense.description)
+        if (keyword.length >= 4) {
+          const res = await expensesApi.bulkCategorize({
+            category_id: catId,
+            description_contains: keyword,
+            all_matching: true,   // includes already-categorised rows (e.g. "Others")
+          })
+          const cat = categories.find(c => c.id === catId)
+          // res.updated includes the current expense; notify parent so it can reload + toast
+          if (onAutoFixed) onAutoFixed({
+            total: res.updated,
+            categoryName: `${cat?.icon ?? ''} ${cat?.name}`.trim(),
+            keyword,
+          })
+        }
       }
+    } finally {
+      setSaving(false)
     }
-  }
-
-  async function handleFixAll(allMatching) {
-    if (!fixPrompt) return
-    setFixing(true)
-    const res = await expensesApi.bulkCategorize({
-      category_id: fixPrompt.categoryId,
-      description_contains: fixPrompt.keyword,
-      all_matching: allMatching,
-    })
-    setFixing(false); setFixPrompt(null)
-    if (onFixSimilar) onFixSimilar(res.updated)
   }
 
   return (
@@ -329,10 +330,11 @@ function InlineCategoryPicker({ expense, categories, onSaved, onCategoryCreated,
         )}
       </button>
 
-      {/* Dropdown */}
+      {/* Dropdown — rendered with high z-index; parent table has overflow-x-auto
+          so we use fixed positioning to escape the clipping context */}
       {open && (
-        <div className="absolute left-0 top-full mt-1 w-56 rounded-xl z-30 shadow-2xl overflow-hidden"
-          style={{ background: 'var(--bg-modal)', border: '1px solid var(--border-medium)' }}>
+        <div className="absolute left-0 top-full mt-1 w-56 rounded-xl shadow-2xl overflow-hidden"
+          style={{ background: 'var(--bg-modal)', border: '1px solid var(--border-medium)', zIndex: 9999 }}>
           <div className="max-h-56 overflow-y-auto py-1">
             <button onClick={() => pick(null)}
               className="w-full text-left px-3 py-2 text-sm hover:bg-white/5 transition-colors"
@@ -343,7 +345,8 @@ function InlineCategoryPicker({ expense, categories, onSaved, onCategoryCreated,
               <button key={c.id} onClick={() => pick(c.id)}
                 className="w-full text-left px-3 py-2 text-sm hover:bg-white/5 transition-colors flex items-center gap-2"
                 style={{ color: expense.category?.id === c.id ? '#a78bfa' : 'var(--text-secondary)' }}>
-                <span>{c.icon}</span><span className="flex-1 truncate">{c.name}</span>
+                <span>{c.icon}</span>
+                <span className="flex-1 truncate">{c.name}</span>
                 {expense.category?.id === c.id && <span className="text-violet-400 text-xs">✓</span>}
               </button>
             ))}
@@ -352,10 +355,7 @@ function InlineCategoryPicker({ expense, categories, onSaved, onCategoryCreated,
           {/* Inline create */}
           {showCreate ? (
             <CreateCategoryForm
-              onCreated={cat => {
-                onCategoryCreated(cat)
-                pick(cat.id)
-              }}
+              onCreated={cat => { onCategoryCreated(cat); pick(cat.id) }}
               onCancel={() => setShowCreate(false)}
             />
           ) : (
@@ -365,36 +365,6 @@ function InlineCategoryPicker({ expense, categories, onSaved, onCategoryCreated,
               <Plus size={12} /> Add category
             </button>
           )}
-        </div>
-      )}
-
-      {/* Fix-similar prompt */}
-      {fixPrompt && (
-        <div className="absolute left-0 top-full mt-1 w-72 rounded-xl z-30 p-3 shadow-2xl"
-          style={{ background: 'var(--bg-modal)', border: '1px solid rgba(139,92,246,0.35)' }}>
-          <p className="text-xs mb-2 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-            Apply <b style={{ color: '#c4b5fd' }}>{fixPrompt.categoryName}</b> to all expenses
-            containing <b style={{ color: 'var(--text-primary)' }}>"{fixPrompt.keyword}"</b>?
-          </p>
-          <div className="flex flex-col gap-1.5">
-            {!fixPrompt.wasUncategorized && (
-              <button onClick={() => handleFixAll(true)} disabled={fixing}
-                className="w-full py-1.5 rounded-lg text-xs font-semibold text-white disabled:opacity-60"
-                style={{ background: 'linear-gradient(135deg,#8b5cf6,#06b6d4)' }}>
-                {fixing ? 'Updating…' : 'Fix all (including re-categorised)'}
-              </button>
-            )}
-            <button onClick={() => handleFixAll(false)} disabled={fixing}
-              className="w-full py-1.5 rounded-lg text-xs font-semibold text-white disabled:opacity-60"
-              style={{ background: 'rgba(139,92,246,0.5)' }}>
-              {fixing ? 'Updating…' : fixPrompt.wasUncategorized ? 'Fix all similar' : 'Fix uncategorised only'}
-            </button>
-            <button onClick={() => setFixPrompt(null)}
-              className="w-full py-1.5 rounded-lg text-xs"
-              style={{ background: 'var(--bg-input)', color: 'var(--text-muted)' }}>
-              Skip
-            </button>
-          </div>
         </div>
       )}
     </div>
@@ -427,7 +397,7 @@ export default function ExpensesPage() {
   const [editTarget, setEditTarget]     = useState(null)
   const [undoQueue, setUndoQueue]       = useState({})
   const [deletedIds, setDeletedIds]     = useState(new Set())
-  const [fixSimilarToast, setFixSimilarToast] = useState(null)
+  const [autoFixToast, setAutoFixToast] = useState(null)   // { total, categoryName, keyword }
   const searchTimer = useRef(null)
 
   function buildParams(
@@ -524,12 +494,14 @@ export default function ExpensesPage() {
 
   return (
     <Layout title="Expenses">
-      {/* Fix-similar toast */}
-      {fixSimilarToast && (
+      {/* Auto-fix toast */}
+      {autoFixToast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 text-sm font-medium text-white"
           style={{ background: 'linear-gradient(135deg,rgba(139,92,246,0.95),rgba(6,182,212,0.95))', backdropFilter: 'blur(12px)' }}>
-          <span>✅ Fixed {fixSimilarToast.updated} similar expense{fixSimilarToast.updated !== 1 ? 's' : ''}</span>
-          <button onClick={() => setFixSimilarToast(null)} style={{ color: 'rgba(255,255,255,0.6)' }}><X size={14} /></button>
+          <span>
+            ✅ Applied <b>{autoFixToast.categoryName}</b> to {autoFixToast.total} expense{autoFixToast.total !== 1 ? 's' : ''} matching "{autoFixToast.keyword}"
+          </span>
+          <button onClick={() => setAutoFixToast(null)} style={{ color: 'rgba(255,255,255,0.6)' }}><X size={14} /></button>
         </div>
       )}
 
@@ -775,10 +747,10 @@ export default function ExpensesPage() {
                         categories={categories}
                         onSaved={() => load(page)}
                         onCategoryCreated={handleCategoryCreated}
-                        onFixSimilar={count => {
-                          setFixSimilarToast({ updated: count })
+                        onAutoFixed={info => {
+                          setAutoFixToast(info)
                           load(page)
-                          setTimeout(() => setFixSimilarToast(null), 4000)
+                          setTimeout(() => setAutoFixToast(null), 6000)
                         }}
                       />
                     </td>
