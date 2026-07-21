@@ -19,7 +19,7 @@ const INCOME_TYPES = [
   { value: 'refund',     label: 'Refund',           emoji: '↩️',  color: '#10b981' },
   { value: 'government', label: 'Government',       emoji: '🏛️', color: '#f59e0b' },
   { value: 'transfer',   label: 'Transfer',         emoji: '↔️',  color: '#ec4899' },
-  { value: 'other',      label: 'Other',            emoji: '📥', color: '#94a3b8' },
+  { value: 'other',      label: 'Other',            emoji: '📥', color: 'var(--text-secondary)' },
 ]
 
 const TYPE_MAP = Object.fromEntries(INCOME_TYPES.map(t => [t.value, t]))
@@ -75,7 +75,7 @@ function IncomeModal({ entry, onClose, onSaved }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
+      style={{ background: 'var(--overlay-bg)', backdropFilter: 'blur(4px)' }}
       onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="w-full max-w-md rounded-2xl p-6"
         style={{ background: 'var(--bg-card)', border: '1px solid rgba(16,185,129,0.3)' }}>
@@ -263,7 +263,7 @@ export default function IncomePage() {
               <BarChart data={trend} barSize={18}>
                 <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
                 <YAxis hide />
-                <Tooltip content={<BarTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+                <Tooltip content={<BarTooltip />} cursor={{ fill: 'var(--bg-button-ghost)' }} />
                 <Bar dataKey="total" fill="#10b981" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>

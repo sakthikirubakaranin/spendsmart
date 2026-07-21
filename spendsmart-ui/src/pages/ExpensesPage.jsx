@@ -198,7 +198,7 @@ function InlineCategoryPicker({ expense, categories, onSaved, onFixSimilar }) {
       {/* Category dropdown */}
       {open && (
         <div className="absolute left-0 top-full mt-1 w-52 rounded-xl z-30 overflow-hidden shadow-2xl"
-          style={{ background: '#0f0f1e', border: '1px solid rgba(255,255,255,0.1)' }}>
+          style={{ background: 'var(--bg-modal)', border: '1px solid var(--border-medium)' }}>
           <div className="max-h-64 overflow-y-auto py-1">
             <button onClick={() => pick(null)}
               className="w-full text-left px-3 py-2 text-sm text-white/40 hover:bg-white/5 transition-colors">
@@ -218,7 +218,7 @@ function InlineCategoryPicker({ expense, categories, onSaved, onFixSimilar }) {
       {/* Fix-similar prompt */}
       {fixPrompt && (
         <div className="absolute left-0 top-full mt-1 w-72 rounded-xl z-30 p-3 shadow-2xl"
-          style={{ background: '#0f0f1e', border: '1px solid rgba(139,92,246,0.35)' }}>
+          style={{ background: 'var(--bg-modal)', border: '1px solid rgba(139,92,246,0.35)' }}>
           <p className="text-xs text-slate-300 mb-2 leading-relaxed">
             Apply <b className="text-violet-300">{fixPrompt.categoryName}</b> to all
             uncategorised expenses containing <b className="text-slate-200">"{fixPrompt.keyword}"</b>?
@@ -231,7 +231,7 @@ function InlineCategoryPicker({ expense, categories, onSaved, onFixSimilar }) {
             </button>
             <button onClick={() => setFixPrompt(null)}
               className="px-3 py-1.5 rounded-lg text-xs text-slate-500 hover:text-slate-300 transition-colors"
-              style={{ background: 'rgba(255,255,255,0.05)' }}>
+              style={{ background: 'var(--bg-input)' }}>
               Skip
             </button>
           </div>
@@ -343,7 +343,7 @@ export default function ExpensesPage() {
           className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm transition-all relative"
           style={showFilters || activeFilterCount > 0
             ? { background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.4)', color: '#c4b5fd' }
-            : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}>
+            : { background: 'var(--bg-input)', border: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
           <SlidersHorizontal size={14} />
           Filters
           {activeFilterCount > 0 && (
@@ -410,12 +410,12 @@ export default function ExpensesPage() {
                 className="px-3 py-2 rounded-lg text-xs transition-all"
                 style={categoryFilter === 'uncategorized'
                   ? { background: 'rgba(245,158,11,0.2)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.3)' }
-                  : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  : { background: 'var(--bg-input)', color: 'var(--text-muted)', border: '1px solid var(--border-subtle)' }}>
                 ⚠️ Uncategorised
               </button>
               <button onClick={() => { setMonthFilter(MONTH_OPTIONS[1]?.value); setPage(1) }}
                 className="px-3 py-2 rounded-lg text-xs transition-all"
-                style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                style={{ background: 'var(--bg-input)', color: 'var(--text-muted)', border: '1px solid var(--border-subtle)' }}>
                 Last month
               </button>
             </div>

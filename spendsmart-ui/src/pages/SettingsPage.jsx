@@ -19,7 +19,7 @@ function Toggle({ checked, onChange }) {
       type="button"
       onClick={() => onChange(!checked)}
       className="w-10 h-5 rounded-full relative transition-colors flex-shrink-0"
-      style={{ background: checked ? 'rgba(139,92,246,0.7)' : 'rgba(255,255,255,0.1)' }}
+      style={{ background: checked ? 'rgba(139,92,246,0.7)' : 'var(--bg-button-ghost)' }}
     >
       <span
         className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all"
@@ -32,7 +32,7 @@ function Toggle({ checked, onChange }) {
 function Section({ title, children }) {
   return (
     <div className="glass rounded-2xl overflow-hidden mb-4">
-      <div className="px-5 py-3.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'rgba(255,255,255,0.02)' }}>
+      <div className="px-5 py-3.5" style={{ borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-surface)' }}>
         <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">{title}</h3>
       </div>
       <div>{children}</div>
@@ -43,7 +43,7 @@ function Section({ title, children }) {
 function Row({ label, sub, children }) {
   return (
     <div className="flex items-center justify-between px-5 py-4 gap-4"
-      style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+      style={{ borderBottom: '1px solid var(--border-subtle)' }}>
       <div className="min-w-0">
         <p className="text-sm font-medium text-slate-200">{label}</p>
         {sub && <p className="text-xs text-slate-500 mt-0.5">{sub}</p>}
@@ -169,9 +169,9 @@ export default function SettingsPage() {
   }, [])
 
   const inputClass = "px-3 py-2 rounded-xl text-sm text-slate-200 outline-none transition-all w-52"
-  const inputStyle = { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }
+  const inputStyle = { background: 'var(--bg-input)', border: '1px solid var(--border-subtle)' }
   const focusStyle = e => (e.target.style.borderColor = 'rgba(139,92,246,0.5)')
-  const blurStyle  = e => (e.target.style.borderColor = 'rgba(255,255,255,0.08)')
+  const blurStyle  = e => (e.target.style.borderColor = 'var(--border-input)')
 
   const initials = name =>
     name ? name.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2) : '?'
@@ -308,7 +308,7 @@ export default function SettingsPage() {
                 </div>
               ) : (
                 <div className="glass rounded-2xl p-5 mb-4 h-24 animate-pulse"
-                  style={{ background: 'rgba(255,255,255,0.04)' }} />
+                  style={{ background: 'var(--bg-button-ghost)' }} />
               )}
 
               <Section title="Personal Info">
@@ -377,19 +377,19 @@ export default function SettingsPage() {
                       onClick={setDark}
                       className="relative flex flex-col items-start gap-3 p-4 rounded-xl border transition-all text-left"
                       style={{
-                        background: theme === 'dark' ? 'rgba(139,92,246,0.1)' : 'rgba(255,255,255,0.03)',
-                        borderColor: theme === 'dark' ? 'rgba(139,92,246,0.5)' : 'rgba(255,255,255,0.08)',
+                        background: theme === 'dark' ? 'rgba(139,92,246,0.1)' : 'var(--bg-button-ghost)',
+                        borderColor: theme === 'dark' ? 'rgba(139,92,246,0.5)' : 'var(--border-input)',
                       }}
                     >
                       {/* Preview swatch */}
                       <div className="w-full h-16 rounded-lg overflow-hidden flex-shrink-0"
-                        style={{ background: '#07070f', border: '1px solid rgba(255,255,255,0.08)' }}>
+                        style={{ background: 'var(--bg-void)', border: '1px solid var(--border-subtle)' }}>
                         <div className="flex h-full">
-                          <div className="w-1/4 h-full" style={{ background: '#0a0a16' }} />
+                          <div className="w-1/4 h-full" style={{ background: 'var(--bg-sidebar)' }} />
                           <div className="flex-1 p-2 flex flex-col gap-1">
-                            <div className="h-2 w-3/4 rounded" style={{ background: 'rgba(255,255,255,0.08)' }} />
+                            <div className="h-2 w-3/4 rounded" style={{ background: 'var(--bg-input-hover)' }} />
                             <div className="h-2 w-1/2 rounded" style={{ background: 'rgba(139,92,246,0.4)' }} />
-                            <div className="h-2 w-2/3 rounded" style={{ background: 'rgba(255,255,255,0.05)' }} />
+                            <div className="h-2 w-2/3 rounded" style={{ background: 'var(--bg-input)' }} />
                           </div>
                         </div>
                       </div>
@@ -410,8 +410,8 @@ export default function SettingsPage() {
                       onClick={setLight}
                       className="relative flex flex-col items-start gap-3 p-4 rounded-xl border transition-all text-left"
                       style={{
-                        background: theme === 'light' ? 'rgba(139,92,246,0.1)' : 'rgba(255,255,255,0.03)',
-                        borderColor: theme === 'light' ? 'rgba(139,92,246,0.5)' : 'rgba(255,255,255,0.08)',
+                        background: theme === 'light' ? 'rgba(139,92,246,0.1)' : 'var(--bg-button-ghost)',
+                        borderColor: theme === 'light' ? 'rgba(139,92,246,0.5)' : 'var(--border-input)',
                       }}
                     >
                       {/* Preview swatch */}
@@ -519,7 +519,7 @@ export default function SettingsPage() {
           {/* ── Category modal ─────────────────────────────────────────────── */}
           {catModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-              style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
+              style={{ background: 'var(--overlay-bg)', backdropFilter: 'blur(4px)' }}
               onClick={e => e.target === e.currentTarget && setCatModal(null)}>
               <div className="w-full max-w-sm rounded-2xl p-6"
                 style={{ background: 'var(--bg-card)', border: '1px solid var(--border-medium)' }}>
@@ -735,7 +735,7 @@ export default function SettingsPage() {
       {deleteModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: 'rgba(0,0,0,0.7)' }}
+          style={{ background: 'var(--overlay-bg)' }}
           onClick={e => { if (e.target === e.currentTarget) { setDeleteModal(false); setDeleteConfirm('') } }}
         >
           <div className="glass rounded-2xl p-6 w-full max-w-md" style={{ border: '1px solid rgba(244,63,94,0.3)' }}>
@@ -762,7 +762,7 @@ export default function SettingsPage() {
               onChange={e => setDeleteConfirm(e.target.value)}
               placeholder="DELETE"
               className="w-full px-3 py-2.5 rounded-xl text-sm text-slate-200 outline-none mb-4 font-mono"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(244,63,94,0.3)' }}
+              style={{ background: 'var(--bg-input)', border: '1px solid rgba(244,63,94,0.3)' }}
               onFocus={e => (e.target.style.borderColor = 'rgba(244,63,94,0.6)')}
               onBlur={e => (e.target.style.borderColor = 'rgba(244,63,94,0.3)')}
             />
@@ -771,7 +771,7 @@ export default function SettingsPage() {
               <button
                 onClick={() => { setDeleteModal(false); setDeleteConfirm('') }}
                 className="flex-1 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-slate-200 transition-colors"
-                style={{ background: 'rgba(255,255,255,0.05)' }}
+                style={{ background: 'var(--bg-input)' }}
               >
                 Cancel
               </button>

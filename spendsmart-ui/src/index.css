@@ -157,7 +157,7 @@ html[data-theme="light"] {
    in light mode without touching each file.
    ──────────────────────────────────────────────────────────────────────────── */
 
-/* Text colours */
+/* ── Slate text overrides ── */
 html[data-theme="light"] .text-slate-50,
 html[data-theme="light"] .text-slate-100  { color: var(--text-primary)   !important; }
 html[data-theme="light"] .text-slate-200  { color: var(--text-primary)   !important; }
@@ -166,12 +166,9 @@ html[data-theme="light"] .text-slate-400  { color: var(--text-secondary) !import
 html[data-theme="light"] .text-slate-500  { color: var(--text-muted)     !important; }
 html[data-theme="light"] .text-slate-600  { color: var(--text-muted)     !important; }
 
-/* Hardcoded white text that lives on dark card backgrounds in dark mode
-   — in light mode these cards are white, so flip the text dark */
-html[data-theme="light"] .text-white {
-  color: var(--text-primary) !important;
-}
-/* Restore white text where it sits ON a coloured/gradient background */
+/* ── text-white → dark text on light cards ── */
+html[data-theme="light"] .text-white { color: var(--text-primary) !important; }
+/* Restore white on colored/gradient backgrounds */
 html[data-theme="light"] [style*="linear-gradient"] .text-white,
 html[data-theme="light"] [class*="bg-violet"] .text-white,
 html[data-theme="light"] [class*="bg-purple"] .text-white,
@@ -181,43 +178,50 @@ html[data-theme="light"] [class*="bg-rose"] .text-white,
 html[data-theme="light"] button .text-white,
 html[data-theme="light"] .text-on-accent { color: #ffffff !important; }
 
-/* Placeholder text */
+/* ── text-white/X opacity variants (Tailwind generates escaped class names) ── */
+html[data-theme="light"] .text-white\/80 { color: var(--text-primary)   !important; }
+html[data-theme="light"] .text-white\/70 { color: var(--text-primary)   !important; }
+html[data-theme="light"] .text-white\/60 { color: var(--text-secondary) !important; }
+html[data-theme="light"] .text-white\/50 { color: var(--text-secondary) !important; }
+html[data-theme="light"] .text-white\/40 { color: var(--text-muted)     !important; }
+html[data-theme="light"] .text-white\/30 { color: var(--text-muted)     !important; }
+html[data-theme="light"] .text-white\/20 { color: var(--text-muted)     !important; }
+html[data-theme="light"] .text-white\/15 { color: var(--text-muted)     !important; }
+html[data-theme="light"] .text-white\/10 { color: var(--text-muted)     !important; }
+/* hover variants */
+html[data-theme="light"] .hover\:text-white:hover       { color: var(--text-primary) !important; }
+html[data-theme="light"] .hover\:text-white\/70:hover   { color: var(--text-primary) !important; }
+html[data-theme="light"] .hover\:text-white\/60:hover   { color: var(--text-secondary) !important; }
+
+/* ── bg-white/X surfaces ── */
+html[data-theme="light"] .bg-white\/5   { background-color: rgba(100,116,139,0.07) !important; }
+html[data-theme="light"] .bg-white\/10  { background-color: rgba(100,116,139,0.12) !important; }
+html[data-theme="light"] .bg-white\/\[0\.02\] { background-color: rgba(100,116,139,0.04) !important; }
+html[data-theme="light"] .bg-white\/\[0\.03\] { background-color: rgba(100,116,139,0.05) !important; }
+
+/* hover variants */
+html[data-theme="light"] .hover\:bg-white\/5:hover   { background-color: rgba(100,116,139,0.06) !important; }
+html[data-theme="light"] .hover\:bg-white\/10:hover  { background-color: rgba(100,116,139,0.10) !important; }
+html[data-theme="light"] .hover\:bg-white\/\[0\.02\]:hover { background-color: rgba(100,116,139,0.04) !important; }
+
+/* ── border-white/X ── */
+html[data-theme="light"] .border-white\/5  { border-color: var(--border-subtle) !important; }
+html[data-theme="light"] .border-white\/10 { border-color: var(--border-medium) !important; }
+
+/* ── placeholder-white/20 → readable light placeholder ── */
+html[data-theme="light"] .placeholder-white\/20::placeholder { color: #94a3b8 !important; }
 html[data-theme="light"] .placeholder-slate-600::placeholder { color: #94a3b8; }
 
-/* Background helpers that use hardcoded dark values */
-html[data-theme="light"] .bg-void  { background-color: var(--bg-void) !important; }
+/* ── Background helpers ── */
+html[data-theme="light"] .bg-void { background-color: var(--bg-void) !important; }
 
-/* Hover bg used in list rows */
-html[data-theme="light"] .hover\:bg-white\/5:hover  { background-color: rgba(100,116,139,0.06) !important; }
-html[data-theme="light"] .hover\:bg-white\/3:hover  { background-color: rgba(100,116,139,0.04) !important; }
-html[data-theme="light"] .hover\:bg-white\/10:hover { background-color: rgba(100,116,139,0.08) !important; }
-
-/* Tab / nav active state in light uses the CSS var already */
-html[data-theme="light"] .bg-white\/5  { background-color: rgba(100,116,139,0.06) !important; }
-
-/* Transparent white surfaces → opaque light surfaces */
-html[data-theme="light"] [style*="rgba(255,255,255,0.03)"],
-html[data-theme="light"] [style*="rgba(255,255,255,0.04)"],
-html[data-theme="light"] [style*="rgba(255,255,255,0.05)"],
-html[data-theme="light"] [style*="rgba(255,255,255,0.06)"],
-html[data-theme="light"] [style*="rgba(255,255,255,0.07)"],
-html[data-theme="light"] [style*="rgba(255,255,255,0.08)"],
-html[data-theme="light"] [style*="rgba(255,255,255,0.09)"] {
-  /* Handled individually via CSS var replacements where possible.
-     Remaining inline-only occurrences get caught below. */
-}
-
-/* Dark card / modal backgrounds → white */
+/* ── Dark card / modal backgrounds → white ── */
 html[data-theme="light"] [style*="background: '#0f0f1e'"],
 html[data-theme="light"] [style*='background: "#0f0f1e"'],
-html[data-theme="light"] [style*="background:#0f0f1e"] {
+html[data-theme="light"] [style*="background:#0f0f1e"],
+html[data-theme="light"] [style*="background: '#13131f'"],
+html[data-theme="light"] [style*='background: "#13131f"'] {
   background: var(--bg-modal) !important;
-}
-
-/* Borders using rgba white — invert to rgba black */
-html[data-theme="light"] [style*="border: '1px solid rgba(255,255,255,0.1)'"],
-html[data-theme="light"] [style*="borderColor: 'rgba(255,255,255,0.06)'"] {
-  border-color: var(--border-subtle) !important;
 }
 
 /* ── Recharts light mode ─────────────────────────────────────────────────── */
@@ -225,6 +229,16 @@ html[data-theme="light"] .recharts-text,
 html[data-theme="light"] .recharts-label { fill: var(--text-muted) !important; }
 
 html[data-theme="light"] .recharts-cartesian-axis-tick text { fill: var(--text-muted) !important; }
+
+/* Recharts cartesian grid lines */
+html[data-theme="light"] .recharts-cartesian-grid-horizontal line,
+html[data-theme="light"] .recharts-cartesian-grid-vertical  line { stroke: var(--border-subtle) !important; }
+
+/* Recharts tooltip cursor bg */
+html[data-theme="light"] .recharts-tooltip-cursor { fill: var(--bg-button-ghost) !important; }
+
+/* Recharts legend text */
+html[data-theme="light"] .recharts-legend-item-text { color: var(--text-secondary) !important; }
 
 /* ── Login / Register pages (full screen dark bg) ────────────────────────── */
 html[data-theme="light"] .min-h-screen.bg-void,

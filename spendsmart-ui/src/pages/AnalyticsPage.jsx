@@ -16,8 +16,8 @@ const PALETTE = [
 ]
 
 const TT = {
-  contentStyle: { background: '#13131f', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, color: '#fff', fontSize: 12 },
-  labelStyle: { color: 'rgba(255,255,255,0.5)', marginBottom: 4 },
+  contentStyle: { background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: 12, color: 'var(--text-primary)', fontSize: 12 },
+  labelStyle: { color: 'var(--text-muted)', marginBottom: 4 },
 }
 
 const THIS_YEAR = new Date().getFullYear()
@@ -34,14 +34,14 @@ function StackTooltip({ active, payload, label }) {
   const items = [...payload].sort((a, b) => b.value - a.value).filter(p => p.value > 0)
   return (
     <div className="rounded-xl p-3 text-xs shadow-xl min-w-[180px]"
-      style={{ background: '#13131f', border: '1px solid rgba(255,255,255,0.1)' }}>
-      <p className="text-white/50 mb-1 font-medium">{label}</p>
-      <p className="text-white font-bold mb-2 text-sm">{formatINR(total)}</p>
+      style={{ background: 'var(--bg-card)', border: '1px solid var(--border-medium)' }}>
+      <p className="mb-1 font-medium" style={{ color: 'var(--text-muted)' }}>{label}</p>
+      <p className="font-bold mb-2 text-sm" style={{ color: 'var(--text-primary)' }}>{formatINR(total)}</p>
       {items.map(p => (
         <div key={p.dataKey} className="flex justify-between items-center gap-4 py-0.5">
           <div className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: p.fill }} />
-            <span className="text-white/70 truncate max-w-[110px]">{p.name}</span>
+            <span className="truncate max-w-[110px]" style={{ color: 'var(--text-secondary)' }}>{p.name}</span>
           </div>
           <span className="text-white font-medium">{formatINRCompact(p.value)}</span>
         </div>
@@ -106,26 +106,26 @@ export default function AnalyticsPage() {
             <Calendar size={15} className="text-white/40" />
             <span className="text-white/40 text-sm">Showing data for</span>
             <div className="flex items-center gap-1 p-0.5 rounded-lg"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              style={{ background: 'var(--bg-input)', border: '1px solid var(--border-subtle)' }}>
               {YEAR_OPTIONS.map(y => (
                 <button key={y} onClick={() => setYear(y)}
                   className="px-3 py-1.5 rounded-md text-xs font-semibold transition-all"
                   style={year === y
                     ? { background: 'rgba(139,92,246,0.3)', color: '#c4b5fd' }
-                    : { color: 'rgba(255,255,255,0.4)' }}>
+                    : { color: 'var(--text-muted)' }}>
                   {y}
                 </button>
               ))}
             </div>
           </div>
           <div className="flex items-center gap-1 p-0.5 rounded-lg"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            style={{ background: 'var(--bg-input)', border: '1px solid var(--border-subtle)' }}>
             {['breakdown', 'insights', 'trends'].map(t => (
               <button key={t} onClick={() => setTab(t)}
                 className="px-3 py-1.5 rounded-md text-xs font-medium capitalize transition-all"
                 style={tab === t
                   ? { background: 'rgba(139,92,246,0.3)', color: '#c4b5fd' }
-                  : { color: 'rgba(255,255,255,0.4)' }}>
+                  : { color: 'var(--text-muted)' }}>
                 {t}
               </button>
             ))}
@@ -143,13 +143,13 @@ export default function AnalyticsPage() {
                 <p className="text-white/40 text-xs mt-0.5">How much you spend on food, fuel, EMIs and more each month</p>
               </div>
               <div className="flex items-center gap-1 p-0.5 rounded-lg"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                style={{ background: 'var(--bg-input)', border: '1px solid var(--border-subtle)' }}>
                 {['chart', 'table'].map(v => (
                   <button key={v} onClick={() => setViewMode(v)}
                     className="px-3 py-1.5 rounded-md text-xs font-medium capitalize transition-all"
                     style={viewMode === v
                       ? { background: 'rgba(139,92,246,0.3)', color: '#c4b5fd' }
-                      : { color: 'rgba(255,255,255,0.4)' }}>
+                      : { color: 'var(--text-muted)' }}>
                     {v}
                   </button>
                 ))}
@@ -161,13 +161,13 @@ export default function AnalyticsPage() {
             ) : viewMode === 'chart' ? (
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={mbc.rows} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                  <CartesianGrid stroke="rgba(255,255,255,0.04)" vertical={false} />
-                  <XAxis dataKey="month" tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <YAxis tickFormatter={formatINRCompact} tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11 }} axisLine={false} tickLine={false} width={52} />
-                  <Tooltip content={<StackTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+                  <CartesianGrid stroke="var(--border-subtle)" vertical={false} />
+                  <XAxis dataKey="month" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <YAxis tickFormatter={formatINRCompact} tick={{ fill: 'var(--text-muted)', fontSize: 11 }} axisLine={false} tickLine={false} width={52} />
+                  <Tooltip content={<StackTooltip />} cursor={{ fill: 'var(--bg-button-ghost)' }} />
                   <Legend wrapperStyle={{ paddingTop: 16 }}
                     formatter={(value, entry) => (
-                      <span style={{ color: 'rgba(255,255,255,0.55)', fontSize: 11 }}>
+                      <span style={{ color: 'var(--text-secondary)', fontSize: 11 }}>
                         {mbc.categories.find(c => c.slug === entry.dataKey)?.icon} {value}
                       </span>
                     )} />
@@ -275,15 +275,15 @@ export default function AnalyticsPage() {
                         </div>
                       </div>
                       <div className="grid grid-cols-3 gap-2 text-xs">
-                        <div className="rounded-lg p-2" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                        <div className="rounded-lg p-2" style={{ background: 'var(--bg-button-ghost)' }}>
                           <p className="text-white/40 mb-0.5">Avg/month</p>
                           <p className="text-white font-medium">{formatINRCompact(c.avg_per_month)}</p>
                         </div>
-                        <div className="rounded-lg p-2" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                        <div className="rounded-lg p-2" style={{ background: 'var(--bg-button-ghost)' }}>
                           <p className="text-white/40 mb-0.5">Peak month</p>
                           <p className="text-white font-medium">{c.peak_month}</p>
                         </div>
-                        <div className="rounded-lg p-2" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                        <div className="rounded-lg p-2" style={{ background: 'var(--bg-button-ghost)' }}>
                           <p className="text-white/40 mb-0.5">Active</p>
                           <p className="text-white font-medium">{c.active_months} months</p>
                         </div>
@@ -316,14 +316,14 @@ export default function AnalyticsPage() {
               <>
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                    <CartesianGrid stroke="rgba(255,255,255,0.04)" vertical={false} />
+                    <CartesianGrid stroke="var(--border-subtle)" vertical={false} />
                     <XAxis dataKey="month" type="category" allowDuplicatedCategory={false}
-                      tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 11 }} axisLine={false} tickLine={false} />
-                    <YAxis tickFormatter={formatINRCompact} tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11 }}
+                      tick={{ fill: 'var(--text-muted)', fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <YAxis tickFormatter={formatINRCompact} tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
                       axisLine={false} tickLine={false} width={52} />
                     <Tooltip {...TT} formatter={(v, name) => [formatINR(v), name]} />
                     <Legend wrapperStyle={{ paddingTop: 16 }}
-                      formatter={v => <span style={{ color: 'rgba(255,255,255,0.55)', fontSize: 11 }}>{v}</span>} />
+                      formatter={v => <span style={{ color: 'var(--text-secondary)', fontSize: 11 }}>{v}</span>} />
                     {top5.map((c, i) => (
                       <Line key={c.slug}
                         data={c.monthly_data}

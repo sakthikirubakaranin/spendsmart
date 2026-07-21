@@ -106,10 +106,10 @@ function TipCard({ tip, onDismiss }) {
 
   return (
     <div className="glass rounded-2xl p-5 relative overflow-hidden transition-all"
-      style={{ border: '1px solid rgba(255,255,255,0.07)' }}>
+      style={{ border: '1px solid var(--border-subtle)' }}>
       <div className="flex items-start gap-4">
         <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-          style={{ background: 'rgba(255,255,255,0.07)' }}>
+          style={{ background: 'var(--bg-surface-hover)' }}>
           {tip.icon}
         </div>
         <div className="flex-1 min-w-0">
@@ -135,7 +135,7 @@ function TipCard({ tip, onDismiss }) {
         )}
       </div>
       <div className="flex items-center justify-between mt-4 pt-3"
-        style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        style={{ borderTop: '1px solid var(--border-subtle)' }}>
         <div className="flex items-center gap-2">
           <button onClick={() => setRated(1)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all
@@ -187,7 +187,7 @@ export default function TipsPage() {
 
         {/* Tab bar */}
         <div className="flex items-center gap-1 p-1 rounded-xl w-fit"
-          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+          style={{ background: 'var(--bg-button-ghost)', border: '1px solid var(--border-subtle)' }}>
           {[
             { id: 'tips',      label: 'Smart Tips',     icon: Zap },
             { id: 'invest',    label: 'Save & Grow',    icon: TrendingUp },
@@ -197,7 +197,7 @@ export default function TipsPage() {
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all"
               style={tab === id
                 ? { background: 'rgba(139,92,246,0.25)', color: '#c4b5fd' }
-                : { color: 'rgba(255,255,255,0.4)' }}>
+                : { color: 'var(--text-muted)' }}>
               <Icon size={14} /> {label}
             </button>
           ))}
@@ -233,17 +233,17 @@ export default function TipsPage() {
                   <div className="flex items-center gap-3">
                     {/* Snapshot cards */}
                     {tipsData.monthly_income > 0 && (
-                      <div className="text-center px-3 py-2 rounded-xl" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                      <div className="text-center px-3 py-2 rounded-xl" style={{ background: 'var(--bg-input)' }}>
                         <p className="text-xs text-white/40">Income</p>
                         <p className="text-sm font-bold text-emerald-400">{formatINR(tipsData.monthly_income)}</p>
                       </div>
                     )}
-                    <div className="text-center px-3 py-2 rounded-xl" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                    <div className="text-center px-3 py-2 rounded-xl" style={{ background: 'var(--bg-input)' }}>
                       <p className="text-xs text-white/40">Spent</p>
                       <p className="text-sm font-bold text-rose-400">{formatINR(tipsData.monthly_expenses)}</p>
                     </div>
                     {tipsData.surplus > 0 && (
-                      <div className="text-center px-3 py-2 rounded-xl" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                      <div className="text-center px-3 py-2 rounded-xl" style={{ background: 'var(--bg-input)' }}>
                         <p className="text-xs text-white/40">Surplus</p>
                         <p className="text-sm font-bold text-cyan-400">{formatINR(tipsData.surplus)}</p>
                       </div>
@@ -302,7 +302,7 @@ export default function TipsPage() {
             <div className="space-y-3">
               {INVEST_TIPS.map((t, i) => (
                 <div key={i} className="glass rounded-2xl p-5 flex gap-4"
-                  style={{ border: '1px solid rgba(255,255,255,0.07)' }}>
+                  style={{ border: '1px solid var(--border-subtle)' }}>
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
                     style={{ background: `${t.color}18` }}>
                     {t.icon}
@@ -316,7 +316,7 @@ export default function TipsPage() {
                     <p className="text-xs text-white/50 leading-relaxed">{t.desc}</p>
                   </div>
                   <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 self-start mt-1"
-                    style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)' }}>
+                    style={{ background: 'var(--bg-input-hover)', color: 'var(--text-muted)' }}>
                     {i + 1}
                   </div>
                 </div>
@@ -385,7 +385,7 @@ export default function TipsPage() {
                 <div className="space-y-3">
                   {BEST_PRACTICES.filter(p => p.level === level).map((p, i) => (
                     <div key={i} className="glass rounded-2xl p-4 flex gap-4"
-                      style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
+                      style={{ border: '1px solid var(--border-subtle)' }}>
                       <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
                         style={{ background: `${LEVEL_COLORS[level]}15` }}>
                         {p.icon}
