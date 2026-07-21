@@ -52,13 +52,13 @@ const PAYMENT_METHODS = ['UPI', 'NET_BANKING', 'DEBIT_CARD', 'CREDIT_CARD', 'CAS
 function Modal({ title, accent, onClose, children }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
+      style={{ background: 'var(--overlay-bg)', backdropFilter: 'blur(6px)' }}
       onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="w-full max-w-md rounded-2xl p-6"
-        style={{ background: '#0f0f1e', border: `1px solid ${accent}` }}>
+        style={{ background: 'var(--bg-modal)', border: `1px solid ${accent}`, boxShadow: 'var(--shadow-modal)' }}>
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-base font-semibold text-slate-100">{title}</h2>
-          <button onClick={onClose} className="text-slate-500 hover:text-slate-300 transition-colors">
+          <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{title}</h2>
+          <button onClick={onClose} style={{ color: 'var(--text-muted)' }} className="hover:opacity-70 transition-opacity">
             <X size={18} />
           </button>
         </div>
@@ -79,8 +79,8 @@ function Field({ label, children }) {
   )
 }
 
-const inputClass = "w-full px-4 py-2.5 rounded-xl text-sm text-slate-100 placeholder-slate-600 outline-none transition-all"
-const inputStyle = { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)' }
+const inputClass = "w-full px-4 py-2.5 rounded-xl text-sm outline-none transition-all"
+const inputStyle = { background: 'var(--bg-input)', border: '1px solid var(--border-input)', color: 'var(--text-primary)' }
 
 // ── Add Income Modal ──────────────────────────────────────────────────────────
 function AddIncomeModal({ onClose, onSaved }) {
@@ -291,18 +291,19 @@ function SearchModal({ onClose }) {
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-24 px-4"
       style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
       onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="w-full max-w-xl rounded-2xl overflow-hidden shadow-2xl"
-        style={{ background: '#0f0f1e', border: '1px solid rgba(139,92,246,0.3)' }}>
+      <div className="w-full max-w-xl rounded-2xl overflow-hidden"
+        style={{ background: 'var(--bg-modal)', border: '1px solid rgba(139,92,246,0.3)', boxShadow: 'var(--shadow-modal)' }}>
 
         {/* Input */}
-        <div className="flex items-center gap-3 px-4 py-3.5 border-b" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
-          <Search size={16} className="text-slate-500 flex-shrink-0" />
+        <div className="flex items-center gap-3 px-4 py-3.5 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
+          <Search size={16} style={{ color: 'var(--text-muted)' }} className="flex-shrink-0" />
           <input
             ref={inputRef}
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="Search expenses by merchant, amount, description…"
-            className="flex-1 bg-transparent text-slate-100 placeholder-slate-600 text-sm outline-none"
+            className="flex-1 bg-transparent text-sm outline-none placeholder-slate-500"
+            style={{ color: 'var(--text-primary)' }}
           />
           {loading && <div className="w-4 h-4 border-2 border-violet-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />}
           <button onClick={onClose} className="text-slate-600 hover:text-slate-400 flex-shrink-0"><X size={16} /></button>
@@ -315,16 +316,16 @@ function SearchModal({ onClose }) {
               <div key={exp.id}
                 onClick={() => { navigate(`/expenses?search=${encodeURIComponent(query)}`); onClose() }}
                 className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${i === selected ? 'bg-white/5' : 'hover:bg-white/3'}`}
-                style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-sm"
                   style={{ background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.2)' }}>
                   {exp.category?.icon || '💸'}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-slate-200 truncate">{exp.description}</p>
-                  <p className="text-xs text-slate-500">{exp.category?.name || 'Uncategorized'} · {fmt(exp.date)}</p>
+                  <p className="text-sm truncate" style={{ color: 'var(--text-primary)' }}>{exp.description}</p>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{exp.category?.name || 'Uncategorized'} · {fmt(exp.date)}</p>
                 </div>
-                <span className="text-sm font-semibold text-white flex-shrink-0">{formatINR(exp.amount)}</span>
+                <span className="text-sm font-semibold flex-shrink-0" style={{ color: 'var(--text-primary)' }}>{formatINR(exp.amount)}</span>
               </div>
             ))}
             <button onClick={goToExpenses}
@@ -405,15 +406,15 @@ function AlertBell() {
 
       {open && (
         <div
-          className="absolute right-0 top-full mt-2 w-80 rounded-2xl overflow-hidden z-50 shadow-2xl"
-          style={{ background: '#0f0f1e', border: '1px solid rgba(255,255,255,0.1)' }}
+          className="absolute right-0 top-full mt-2 w-80 rounded-2xl overflow-hidden z-50"
+          style={{ background: 'var(--bg-modal)', border: '1px solid var(--border-medium)', boxShadow: 'var(--shadow-dropdown)' }}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3"
-            style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
+            style={{ borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-surface)' }}>
             <div className="flex items-center gap-2">
-              <Bell size={13} className="text-slate-400" />
-              <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">Budget Alerts</span>
+              <Bell size={13} style={{ color: 'var(--text-secondary)' }} />
+              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Budget Alerts</span>
             </div>
             {count > 0 && (
               <span className="text-xs text-slate-500">{data?.month}</span>
@@ -436,7 +437,7 @@ function AlertBell() {
               {alerts.map(alert => (
                 <div key={alert.category_id}
                   className="px-4 py-3 hover:bg-white/5 transition-colors"
-                  style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+                  style={{ borderBottom: '1px solid var(--border-subtle)' }}
                 >
                   <div className="flex items-start gap-3">
                     <span className="text-lg flex-shrink-0 mt-0.5">{alert.category_icon}</span>
@@ -487,7 +488,7 @@ function AlertBell() {
           )}
 
           {/* Footer */}
-          <div className="px-4 py-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="px-4 py-3" style={{ borderTop: '1px solid var(--border-subtle)' }}>
             <button
               onClick={() => { setOpen(false); navigate('/budgets') }}
               className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-medium text-violet-400 hover:text-violet-300 transition-colors"
@@ -574,10 +575,10 @@ function DateFilterBar({ filterMode, onFilterModeChange }) {
         </button>
 
         {showMonthPicker && (
-          <div className="absolute top-full left-0 mt-1.5 w-52 rounded-xl overflow-hidden z-50 shadow-2xl"
-            style={{ background: '#0f0f1e', border: '1px solid rgba(255,255,255,0.1)' }}>
-            <div className="px-3 py-2 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-              <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: '#475569' }}>Select Month</p>
+          <div className="absolute top-full left-0 mt-1.5 w-52 rounded-xl overflow-hidden z-50"
+            style={{ background: 'var(--bg-modal)', border: '1px solid var(--border-medium)', boxShadow: 'var(--shadow-dropdown)' }}>
+            <div className="px-3 py-2 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
+              <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'var(--text-muted)' }}>Select Month</p>
             </div>
             <div className="max-h-60 overflow-y-auto">
               {MONTH_OPTIONS.map(m => {
@@ -609,21 +610,21 @@ function DateFilterBar({ filterMode, onFilterModeChange }) {
         </button>
 
         {showCustomPicker && (
-          <div className="absolute top-full right-0 mt-1.5 w-60 rounded-xl p-3 z-50 shadow-2xl"
-            style={{ background: '#0f0f1e', border: '1px solid rgba(255,255,255,0.1)' }}>
-            <p className="text-[10px] uppercase tracking-wider font-semibold mb-3" style={{ color: '#475569' }}>Custom Range</p>
+          <div className="absolute top-full right-0 mt-1.5 w-60 rounded-xl p-3 z-50"
+            style={{ background: 'var(--bg-modal)', border: '1px solid var(--border-medium)', boxShadow: 'var(--shadow-dropdown)' }}>
+            <p className="text-[10px] uppercase tracking-wider font-semibold mb-3" style={{ color: 'var(--text-muted)' }}>Custom Range</p>
             <div className="space-y-2.5">
               <div>
-                <label className="text-xs mb-1 block" style={{ color: '#64748b' }}>From</label>
+                <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>From</label>
                 <input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)}
                   className="w-full px-2.5 py-2 rounded-lg text-xs outline-none"
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', color: '#e2e8f0' }} />
+                  style={{ background: 'var(--bg-input)', border: '1px solid var(--border-input)', color: 'var(--text-primary)' }} />
               </div>
               <div>
-                <label className="text-xs mb-1 block" style={{ color: '#64748b' }}>To</label>
+                <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>To</label>
                 <input type="date" value={customTo} min={customFrom} onChange={e => setCustomTo(e.target.value)}
                   className="w-full px-2.5 py-2 rounded-lg text-xs outline-none"
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', color: '#e2e8f0' }} />
+                  style={{ background: 'var(--bg-input)', border: '1px solid var(--border-input)', color: 'var(--text-primary)' }} />
               </div>
               <button onClick={applyCustom}
                 disabled={!customFrom || !customTo || customFrom > customTo}
@@ -716,17 +717,18 @@ export default function TopBar({ title = 'Dashboard', filterMode, onFilterModeCh
             </button>
 
             {dropdown && (
-              <div className="absolute right-0 top-full mt-1 w-44 rounded-xl overflow-hidden z-50 shadow-xl"
-                style={{ background: '#0f0f1e', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <div className="absolute right-0 top-full mt-1 w-44 rounded-xl overflow-hidden z-50"
+                style={{ background: 'var(--bg-modal)', border: '1px solid var(--border-medium)', boxShadow: 'var(--shadow-dropdown)' }}>
                 <button
                   onClick={() => { setModal('expense'); setDropdown(false) }}
-                  className="w-full text-left px-4 py-3 text-sm text-slate-200 hover:bg-white/5 flex items-center gap-2 transition-colors">
+                  className="w-full text-left px-4 py-3 text-sm hover:bg-white/5 flex items-center gap-2 transition-colors"
+                  style={{ color: 'var(--text-primary)' }}>
                   <Plus size={14} className="text-violet-400" /> Add Expense
                 </button>
                 <button
                   onClick={() => { setModal('income'); setDropdown(false) }}
-                  className="w-full text-left px-4 py-3 text-sm text-slate-200 hover:bg-white/5 flex items-center gap-2 transition-colors border-t"
-                  style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+                  className="w-full text-left px-4 py-3 text-sm hover:bg-white/5 flex items-center gap-2 transition-colors border-t"
+                  style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}>
                   <Plus size={14} className="text-emerald-400" /> Add Income
                 </button>
               </div>
