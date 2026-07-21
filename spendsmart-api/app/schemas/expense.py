@@ -83,6 +83,7 @@ class ExpenseOut(BaseModel):
 class ExpenseListResponse(BaseModel):
     items: list[ExpenseOut]
     total: int
+    total_amount: float = 0.0
     page: int
     per_page: int
     pages: int

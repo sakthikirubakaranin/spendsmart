@@ -87,8 +87,16 @@ async def list_expenses(
     }
     q = q.order_by(sort_map[sort])
 
-    total_result = await db.execute(select(func.count()).select_from(q.subquery()))
+    # Count and sum before pagination
+    sub = q.subquery()
+    total_result = await db.execute(select(func.count()).select_from(sub))
     total = total_result.scalar_one()
+
+    amount_result = await db.execute(
+        select(func.coalesce(func.sum(Expense.amount), 0.0))
+        .where(Expense.id.in_(select(sub.c.id)))
+    )
+    total_amount = float(amount_result.scalar_one())
 
     q = q.offset((page - 1) * per_page).limit(per_page)
     result = await db.execute(q)
@@ -97,6 +105,7 @@ async def list_expenses(
     return ExpenseListResponse(
         items=items,
         total=total,
+        total_amount=total_amount,
         page=page,
         per_page=per_page,
         pages=math.ceil(total / per_page) if total else 1,
@@ -220,7 +229,8 @@ async def delete_expense(
 class BulkCategorizeRequest(BaseModel):
     category_id: int | None                   # null = uncategorize
     expense_ids: list[uuid.UUID] | None = None # specific IDs
-    description_contains: str | None = None   # keyword match (uncategorized only)
+    description_contains: str | None = None   # keyword match
+    all_matching: bool = False                # if True, match all (not just uncategorized)
 
 
 class BulkCategorizeResponse(BaseModel):
@@ -245,11 +255,10 @@ async def bulk_categorize(
     if body.expense_ids:
         q = q.where(Expense.id.in_(body.expense_ids))
     else:
-        # Match uncategorized expenses with description keyword
-        q = q.where(
-            Expense.category_id == None,
-            Expense.description.ilike(f"%{body.description_contains}%"),
-        )
+        q = q.where(Expense.description.ilike(f"%{body.description_contains}%"))
+        if not body.all_matching:
+            # Default: only match uncategorized expenses
+            q = q.where(Expense.category_id == None)
 
     result = await db.execute(q)
     await db.commit()
