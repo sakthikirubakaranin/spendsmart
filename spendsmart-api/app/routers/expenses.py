@@ -51,6 +51,7 @@ async def list_expenses(
     from_date: Optional[date] = None,
     to_date: Optional[date] = None,
     category_id: Optional[int] = None,
+    category_ids: Optional[str] = Query(default=None),   # comma-separated IDs for multi-select
     payment_method: Optional[str] = None,
     source: Optional[str] = None,
     search: Optional[str] = None,
@@ -68,6 +69,10 @@ async def list_expenses(
         q = q.where(Expense.date <= to_date)
     if uncategorized:
         q = q.where(Expense.category_id == None)
+    elif category_ids:
+        ids = [int(x) for x in category_ids.split(',') if x.strip().isdigit()]
+        if ids:
+            q = q.where(Expense.category_id.in_(ids))
     elif category_id:
         q = q.where(Expense.category_id == category_id)
     if payment_method:

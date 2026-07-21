@@ -7,6 +7,7 @@ import { formatINR } from '../utils/currency'
 import {
   Search, Plus, Edit2, Trash2, X, RotateCcw,
   ChevronLeft, ChevronRight, SlidersHorizontal, Tag, CreditCard, Calendar,
+  Check, ChevronDown, ArrowUp, ArrowDown, ArrowUpDown,
 } from 'lucide-react'
 
 const PAYMENT_METHODS = ['UPI', 'Credit Card', 'Debit Card', 'Cash', 'Net Banking']
@@ -371,6 +372,127 @@ function InlineCategoryPicker({ expense, categories, onSaved, onCategoryCreated,
   )
 }
 
+// ── Multi-select category filter ──────────────────────────────────────────────
+// selected: string[]  — values are 'uncategorized' or category id strings
+function CategoryMultiSelect({ categories, selected, onChange }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    function handle(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handle)
+    return () => document.removeEventListener('mousedown', handle)
+  }, [])
+
+  function toggle(val) {
+    if (val === 'uncategorized') {
+      // Uncategorised is exclusive
+      onChange(selected.includes('uncategorized') ? [] : ['uncategorized'])
+      return
+    }
+    // Clear the 'uncategorized' flag when picking real categories
+    const withoutMeta = selected.filter(s => s !== 'uncategorized')
+    onChange(withoutMeta.includes(val)
+      ? withoutMeta.filter(s => s !== val)
+      : [...withoutMeta, val])
+  }
+
+  const catIds = selected.filter(s => s !== 'uncategorized')
+  const label = selected.length === 0
+    ? 'All categories'
+    : selected.includes('uncategorized')
+    ? '⚠️ Uncategorised'
+    : catIds.length === 1
+    ? (() => { const c = categories.find(c => String(c.id) === catIds[0]); return c ? `${c.icon} ${c.name}` : '1 selected' })()
+    : `${catIds.length} categories`
+
+  const isActive = selected.length > 0
+
+  return (
+    <div className="relative" ref={ref}>
+      <button onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all min-w-[160px] justify-between"
+        style={isActive
+          ? { background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.35)', color: '#c4b5fd' }
+          : { background: 'var(--bg-input)', border: '1px solid var(--border-input)', color: 'var(--text-secondary)' }}>
+        <span className="truncate">{label}</span>
+        <ChevronDown size={12} className={`flex-shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-full mt-1 w-64 rounded-xl shadow-2xl overflow-hidden"
+          style={{ background: 'var(--bg-modal)', border: '1px solid var(--border-medium)', zIndex: 9999 }}>
+
+          {/* Header */}
+          <div className="flex items-center justify-between px-3 py-2"
+            style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+            <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+              Filter by category
+            </span>
+            {selected.length > 0 && (
+              <button onClick={() => onChange([])}
+                className="text-xs flex items-center gap-1"
+                style={{ color: '#f43f5e' }}>
+                <X size={10} /> Clear
+              </button>
+            )}
+          </div>
+
+          {/* Uncategorised special option */}
+          <button onClick={() => toggle('uncategorized')}
+            className="w-full flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-white/5 transition-colors"
+            style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+            <span className="w-4 h-4 rounded flex-shrink-0 flex items-center justify-center"
+              style={{
+                background: selected.includes('uncategorized') ? '#f59e0b' : 'transparent',
+                border: selected.includes('uncategorized') ? '1px solid #f59e0b' : '1px solid var(--border-medium)',
+              }}>
+              {selected.includes('uncategorized') && <Check size={10} className="text-white" />}
+            </span>
+            <span style={{ color: 'var(--text-secondary)' }}>⚠️ Uncategorised</span>
+          </button>
+
+          {/* Category list */}
+          <div className="max-h-60 overflow-y-auto py-1">
+            {categories.map(c => {
+              const val = String(c.id)
+              const checked = catIds.includes(val)
+              return (
+                <button key={c.id} onClick={() => toggle(val)}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-white/5 transition-colors">
+                  <span className="w-4 h-4 rounded flex-shrink-0 flex items-center justify-center"
+                    style={{
+                      background: checked ? '#8b5cf6' : 'transparent',
+                      border: checked ? '1px solid #8b5cf6' : '1px solid var(--border-medium)',
+                    }}>
+                    {checked && <Check size={10} className="text-white" />}
+                  </span>
+                  <span className="flex-shrink-0">{c.icon}</span>
+                  <span className="truncate" style={{ color: 'var(--text-secondary)' }}>{c.name}</span>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Footer: select all / clear */}
+          <div className="flex gap-2 px-3 py-2" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+            <button onClick={() => onChange(categories.map(c => String(c.id)))}
+              className="flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors"
+              style={{ background: 'var(--bg-input)', color: 'var(--text-secondary)' }}>
+              Select all
+            </button>
+            <button onClick={() => onChange([])}
+              className="flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors"
+              style={{ background: 'var(--bg-input)', color: 'var(--text-secondary)' }}>
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function ExpensesPage() {
   const location = useLocation()
@@ -385,7 +507,8 @@ export default function ExpensesPage() {
   const [totalAmount, setTotalAmount]   = useState(0)
   const [search, setSearch]             = useState(initialSearch)
   const [searchInput, setSearchInput]   = useState(initialSearch)
-  const [categoryFilter, setCategoryFilter] = useState('')
+  const [categoryFilters, setCategoryFilters] = useState([])   // [] | ['uncategorized'] | ['1','3',...]
+  const [sort, setSort]                 = useState('date_desc')
   const [dateMode, setDateMode]         = useState('month')   // 'month' | 'custom'
   const [monthFilter, setMonthFilter]   = useState('')
   const [fromDate, setFromDate]         = useState('')
@@ -402,14 +525,21 @@ export default function ExpensesPage() {
 
   function buildParams(
     p = 1, q = search,
-    cat = categoryFilter, month = monthFilter,
+    cats = categoryFilters, month = monthFilter,
     from = fromDate, to = toDate,
     acc = accountFilter, mode = dateMode,
+    sortBy = sort,
   ) {
-    const params = { page: p, per_page: 25, sort: 'date_desc' }
+    const params = { page: p, per_page: 25, sort: sortBy }
     if (q) params.search = q
-    if (cat === 'uncategorized') params.uncategorized = true
-    else if (cat) params.category_id = cat
+
+    if (cats.includes('uncategorized')) {
+      params.uncategorized = true
+    } else {
+      const ids = cats.filter(c => c !== 'uncategorized')
+      if (ids.length === 1) params.category_id = ids[0]
+      else if (ids.length > 1) params.category_ids = ids.join(',')
+    }
 
     if (mode === 'month') {
       const range = monthToRange(month)
@@ -424,23 +554,23 @@ export default function ExpensesPage() {
   }
 
   const load = useCallback(async (
-    p = 1, q = search, cat = categoryFilter,
+    p = 1, q = search, cats = categoryFilters,
     month = monthFilter, from = fromDate, to = toDate,
-    acc = accountFilter, mode = dateMode,
+    acc = accountFilter, mode = dateMode, sortBy = sort,
   ) => {
     setLoading(true)
     try {
-      const res = await expensesApi.list(buildParams(p, q, cat, month, from, to, acc, mode))
+      const res = await expensesApi.list(buildParams(p, q, cats, month, from, to, acc, mode, sortBy))
       setExpenses(res.items)
       setPages(res.pages)
       setTotal(res.total)
       setTotalAmount(res.total_amount ?? 0)
     } finally { setLoading(false) }
-  }, [search, categoryFilter, monthFilter, fromDate, toDate, accountFilter, dateMode])
+  }, [search, categoryFilters, monthFilter, fromDate, toDate, accountFilter, dateMode, sort])
 
   useEffect(() => { categoriesApi.list().then(setCategories) }, [])
   useEffect(() => { bankAccountsApi.list().then(setBankAccounts).catch(() => {}) }, [])
-  useEffect(() => { load(1) }, [categoryFilter, monthFilter, fromDate, toDate, accountFilter, dateMode])
+  useEffect(() => { load(1) }, [categoryFilters, monthFilter, fromDate, toDate, accountFilter, dateMode, sort])
 
   function handleSearchChange(val) {
     setSearchInput(val)
@@ -449,8 +579,9 @@ export default function ExpensesPage() {
   }
 
   function clearFilters() {
-    setCategoryFilter(''); setMonthFilter(''); setFromDate(''); setToDate('')
-    setAccountFilter(''); setSearch(''); setSearchInput(''); setPage(1); setDateMode('month')
+    setCategoryFilters([]); setMonthFilter(''); setFromDate(''); setToDate('')
+    setAccountFilter(''); setSearch(''); setSearchInput(''); setPage(1)
+    setDateMode('month'); setSort('date_desc')
   }
 
   function handleCategoryCreated(cat) {
@@ -458,7 +589,13 @@ export default function ExpensesPage() {
   }
 
   const hasDateFilter = dateMode === 'month' ? !!monthFilter : (!!fromDate || !!toDate)
-  const activeFilterCount = [categoryFilter, hasDateFilter ? '1' : '', search, accountFilter].filter(Boolean).length
+  const activeFilterCount = [
+    categoryFilters.length > 0 ? '1' : '',
+    hasDateFilter ? '1' : '',
+    search,
+    accountFilter,
+    sort !== 'date_desc' ? '1' : '',
+  ].filter(Boolean).length
   const displayed = expenses.filter(e => !deletedIds.has(e.id))
 
   async function handleDelete(id) {
@@ -592,16 +729,26 @@ export default function ExpensesPage() {
             )}
           </div>
 
-          {/* Category */}
-          <div className="flex flex-col gap-1.5 min-w-[200px]">
+          {/* Category — multi-select */}
+          <div className="flex flex-col gap-1.5">
             <label className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Category</label>
-            <select value={categoryFilter}
-              onChange={e => { setCategoryFilter(e.target.value); setPage(1) }}
+            <CategoryMultiSelect
+              categories={categories}
+              selected={categoryFilters}
+              onChange={vals => { setCategoryFilters(vals); setPage(1) }}
+            />
+          </div>
+
+          {/* Sort */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Sort by</label>
+            <select value={sort} onChange={e => { setSort(e.target.value); setPage(1) }}
               className="rounded-lg px-3 py-2 text-sm outline-none"
               style={{ background: 'var(--bg-input)', border: '1px solid var(--border-input)', color: 'var(--text-primary)' }}>
-              <option value="">All categories</option>
-              <option value="uncategorized">⚠️ Uncategorised only</option>
-              {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
+              <option value="date_desc">Date — newest first</option>
+              <option value="date_asc">Date — oldest first</option>
+              <option value="amount_desc">Amount — highest first</option>
+              <option value="amount_asc">Amount — lowest first</option>
             </select>
           </div>
 
@@ -625,22 +772,25 @@ export default function ExpensesPage() {
           {/* Quick links */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Quick</label>
-            <div className="flex gap-2">
-              <button onClick={() => { setCategoryFilter('uncategorized'); setPage(1) }}
+            <div className="flex flex-wrap gap-2">
+              <button onClick={() => { setCategoryFilters(['uncategorized']); setPage(1) }}
                 className="px-3 py-2 rounded-lg text-xs transition-all"
-                style={categoryFilter === 'uncategorized'
+                style={categoryFilters.includes('uncategorized')
                   ? { background: 'rgba(245,158,11,0.2)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.3)' }
                   : { background: 'var(--bg-input)', color: 'var(--text-muted)', border: '1px solid var(--border-subtle)' }}>
                 ⚠️ Uncategorised
               </button>
-              <button onClick={() => {
-                setDateMode('month')
-                setMonthFilter(MONTH_OPTIONS[1]?.value)
-                setPage(1)
-              }}
+              <button onClick={() => { setDateMode('month'); setMonthFilter(MONTH_OPTIONS[1]?.value); setPage(1) }}
                 className="px-3 py-2 rounded-lg text-xs transition-all"
                 style={{ background: 'var(--bg-input)', color: 'var(--text-muted)', border: '1px solid var(--border-subtle)' }}>
                 Last month
+              </button>
+              <button onClick={() => { setSort('amount_desc'); setPage(1) }}
+                className="px-3 py-2 rounded-lg text-xs transition-all flex items-center gap-1"
+                style={sort === 'amount_desc'
+                  ? { background: 'rgba(139,92,246,0.2)', color: '#c4b5fd', border: '1px solid rgba(139,92,246,0.35)' }
+                  : { background: 'var(--bg-input)', color: 'var(--text-muted)', border: '1px solid var(--border-subtle)' }}>
+                <ArrowDown size={11} /> Highest amount
               </button>
             </div>
           </div>
@@ -668,21 +818,22 @@ export default function ExpensesPage() {
                 <p className="text-xs uppercase tracking-wide mb-0.5" style={{ color: 'var(--text-muted)' }}>Period</p>
                 <p className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>{dateRangeLabel()}</p>
               </div>
-              {categoryFilter && categoryFilter !== 'uncategorized' && (
+              {categoryFilters.length > 0 && !categoryFilters.includes('uncategorized') && (
                 <>
                   <div className="w-px h-8 self-center" style={{ background: 'var(--border-subtle)' }} />
                   <div>
                     <p className="text-xs uppercase tracking-wide mb-0.5" style={{ color: 'var(--text-muted)' }}>Category</p>
                     <p className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
-                      {categories.find(c => String(c.id) === String(categoryFilter))?.icon}{' '}
-                      {categories.find(c => String(c.id) === String(categoryFilter))?.name}
+                      {categoryFilters.length === 1
+                        ? (() => { const c = categories.find(c => String(c.id) === categoryFilters[0]); return c ? `${c.icon} ${c.name}` : '' })()
+                        : `${categoryFilters.length} categories`}
                     </p>
                   </div>
                 </>
               )}
             </>
           )}
-          {categoryFilter === 'uncategorized' && (
+          {categoryFilters.includes('uncategorized') && (
             <span className="flex items-center gap-1 text-xs text-amber-500 ml-auto">
               <Tag size={12} /> Click any Category cell to fix categorisation
             </span>
@@ -708,11 +859,27 @@ export default function ExpensesPage() {
             <thead>
               <tr className="border-b text-xs uppercase tracking-wider"
                 style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>
-                <th className="text-left px-5 py-3">Date</th>
+                <th className="text-left px-5 py-3">
+                  <button
+                    onClick={() => { const s = sort === 'date_desc' ? 'date_asc' : 'date_desc'; setSort(s); setPage(1) }}
+                    className="flex items-center gap-1 hover:opacity-80 transition-opacity"
+                    style={{ color: sort.startsWith('date') ? '#a78bfa' : 'var(--text-muted)' }}>
+                    Date
+                    {sort === 'date_desc' ? <ArrowDown size={11} /> : sort === 'date_asc' ? <ArrowUp size={11} /> : <ArrowUpDown size={11} />}
+                  </button>
+                </th>
                 <th className="text-left px-5 py-3">Description</th>
                 <th className="text-left px-5 py-3">Category</th>
                 <th className="text-left px-5 py-3">Payment</th>
-                <th className="text-right px-5 py-3">Amount</th>
+                <th className="text-right px-5 py-3">
+                  <button
+                    onClick={() => { const s = sort === 'amount_desc' ? 'amount_asc' : 'amount_desc'; setSort(s); setPage(1) }}
+                    className="flex items-center gap-1 ml-auto hover:opacity-80 transition-opacity"
+                    style={{ color: sort.startsWith('amount') ? '#a78bfa' : 'var(--text-muted)' }}>
+                    Amount
+                    {sort === 'amount_desc' ? <ArrowDown size={11} /> : sort === 'amount_asc' ? <ArrowUp size={11} /> : <ArrowUpDown size={11} />}
+                  </button>
+                </th>
                 <th className="px-5 py-3" />
               </tr>
             </thead>
