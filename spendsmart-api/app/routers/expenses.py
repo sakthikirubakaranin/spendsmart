@@ -51,6 +51,7 @@ async def list_expenses(
     from_date: Optional[date] = None,
     to_date: Optional[date] = None,
     category_id: Optional[int] = None,
+    category_ids: Optional[str] = Query(default=None),   # comma-separated IDs for multi-select
     payment_method: Optional[str] = None,
     source: Optional[str] = None,
     search: Optional[str] = None,
@@ -68,6 +69,10 @@ async def list_expenses(
         q = q.where(Expense.date <= to_date)
     if uncategorized:
         q = q.where(Expense.category_id == None)
+    elif category_ids:
+        ids = [int(x) for x in category_ids.split(',') if x.strip().isdigit()]
+        if ids:
+            q = q.where(Expense.category_id.in_(ids))
     elif category_id:
         q = q.where(Expense.category_id == category_id)
     if payment_method:
@@ -87,8 +92,29 @@ async def list_expenses(
     }
     q = q.order_by(sort_map[sort])
 
-    total_result = await db.execute(select(func.count()).select_from(q.subquery()))
-    total = total_result.scalar_one()
+    # ── Count + sum via a clean dedicated query (avoids selectinload subquery quirks) ──
+    count_filters = [Expense.user_id == current_user.id, Expense.is_deleted == False]
+    if from_date:      count_filters.append(Expense.date >= from_date)
+    if to_date:        count_filters.append(Expense.date <= to_date)
+    if uncategorized:  count_filters.append(Expense.category_id == None)  # noqa: E711
+    elif category_ids:
+        _ids = [int(x) for x in category_ids.split(',') if x.strip().isdigit()]
+        if _ids: count_filters.append(Expense.category_id.in_(_ids))
+    elif category_id:  count_filters.append(Expense.category_id == category_id)
+    if payment_method: count_filters.append(Expense.payment_method == payment_method)
+    if source:         count_filters.append(Expense.source == source)
+    if search:         count_filters.append(Expense.description.ilike(f"%{search}%"))
+    if bank_account_id: count_filters.append(Expense.bank_account_id == bank_account_id)
+
+    stats_row = await db.execute(
+        select(
+            func.count(Expense.id).label("total"),
+            func.coalesce(func.sum(Expense.amount), 0.0).label("total_amount"),
+        ).where(*count_filters)
+    )
+    row = stats_row.one()
+    total = int(row.total)
+    total_amount = float(row.total_amount)
 
     q = q.offset((page - 1) * per_page).limit(per_page)
     result = await db.execute(q)
@@ -97,6 +123,7 @@ async def list_expenses(
     return ExpenseListResponse(
         items=items,
         total=total,
+        total_amount=total_amount,
         page=page,
         per_page=per_page,
         pages=math.ceil(total / per_page) if total else 1,
@@ -220,7 +247,8 @@ async def delete_expense(
 class BulkCategorizeRequest(BaseModel):
     category_id: int | None                   # null = uncategorize
     expense_ids: list[uuid.UUID] | None = None # specific IDs
-    description_contains: str | None = None   # keyword match (uncategorized only)
+    description_contains: str | None = None   # keyword match
+    all_matching: bool = False                # if True, match all (not just uncategorized)
 
 
 class BulkCategorizeResponse(BaseModel):
@@ -245,11 +273,10 @@ async def bulk_categorize(
     if body.expense_ids:
         q = q.where(Expense.id.in_(body.expense_ids))
     else:
-        # Match uncategorized expenses with description keyword
-        q = q.where(
-            Expense.category_id == None,
-            Expense.description.ilike(f"%{body.description_contains}%"),
-        )
+        q = q.where(Expense.description.ilike(f"%{body.description_contains}%"))
+        if not body.all_matching:
+            # Default: only match uncategorized expenses
+            q = q.where(Expense.category_id == None)
 
     result = await db.execute(q)
     await db.commit()
