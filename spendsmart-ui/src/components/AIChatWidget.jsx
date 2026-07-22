@@ -26,6 +26,35 @@ const MONTHS_OPTIONS = [
   { value: 24, label: 'Last 24 months' },
 ]
 
+function RobotFace() {
+  return (
+    <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Antenna */}
+      <line x1="18" y1="1" x2="18" y2="7" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+      <circle cx="18" cy="1.5" r="2.5" fill="#e9d5ff"/>
+      <circle cx="18" cy="1.5" r="1.2" fill="#8b5cf6"/>
+      {/* Ears */}
+      <rect x="1" y="14" width="4" height="8" rx="2" fill="rgba(255,255,255,0.3)" stroke="rgba(255,255,255,0.6)" strokeWidth="1"/>
+      <rect x="31" y="14" width="4" height="8" rx="2" fill="rgba(255,255,255,0.3)" stroke="rgba(255,255,255,0.6)" strokeWidth="1"/>
+      {/* Head */}
+      <rect x="5" y="7" width="26" height="23" rx="6" fill="rgba(255,255,255,0.12)" stroke="white" strokeWidth="1.5"/>
+      {/* Left eye */}
+      <rect x="8" y="13" width="7" height="6" rx="2.5" fill="rgba(255,255,255,0.95)"/>
+      <circle cx="11.5" cy="16" r="2.2" fill="#7c3aed"/>
+      <circle cx="12.4" cy="15.1" r="0.8" fill="white"/>
+      {/* Right eye */}
+      <rect x="21" y="13" width="7" height="6" rx="2.5" fill="rgba(255,255,255,0.95)"/>
+      <circle cx="24.5" cy="16" r="2.2" fill="#7c3aed"/>
+      <circle cx="25.4" cy="15.1" r="0.8" fill="white"/>
+      {/* Mouth */}
+      <rect x="10" y="23" width="16" height="4" rx="2" fill="rgba(255,255,255,0.25)" stroke="rgba(255,255,255,0.5)" strokeWidth="1"/>
+      <line x1="14" y1="23" x2="14" y2="27" stroke="rgba(255,255,255,0.35)" strokeWidth="1"/>
+      <line x1="18" y1="23" x2="18" y2="27" stroke="rgba(255,255,255,0.35)" strokeWidth="1"/>
+      <line x1="22" y1="23" x2="22" y2="27" stroke="rgba(255,255,255,0.35)" strokeWidth="1"/>
+    </svg>
+  )
+}
+
 export default function AIChatWidget() {
   const [open, setOpen]       = useState(false)
   const [input, setInput]     = useState('')
@@ -74,21 +103,35 @@ export default function AIChatWidget() {
   return (
     <>
       {/* ── Floating trigger button ─────────────────────────────────────── */}
-      <button
-        onClick={() => setOpen(v => !v)}
-        title="Ask AI about your expenses"
-        className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-all hover:scale-105 active:scale-95"
-        style={{
-          background: open
-            ? 'rgba(139,92,246,0.9)'
-            : 'linear-gradient(135deg, #8b5cf6, #06b6d4)',
-          boxShadow: '0 8px 32px rgba(139,92,246,0.4)',
-        }}
-      >
-        {open
-          ? <X size={22} className="text-white" />
-          : <Sparkles size={22} className="text-white" />}
-      </button>
+      {open ? (
+        <button
+          onClick={() => setOpen(false)}
+          title="Close AI Assistant"
+          className="fixed bottom-6 right-6 z-40 w-12 h-12 rounded-full shadow-2xl flex items-center justify-center transition-all hover:scale-105 active:scale-95"
+          style={{
+            background: 'rgba(109,40,217,0.95)',
+            boxShadow: '0 8px 32px rgba(139,92,246,0.45)',
+          }}
+        >
+          <X size={20} className="text-white" />
+        </button>
+      ) : (
+        <button
+          onClick={() => setOpen(true)}
+          title="Ask AI about your expenses"
+          className="fixed bottom-6 right-6 z-40 flex items-center gap-3 pl-2.5 pr-5 py-2.5 rounded-2xl shadow-2xl transition-all duration-200 hover:scale-105 active:scale-95"
+          style={{
+            background: 'linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%)',
+            boxShadow: '0 8px 32px rgba(139,92,246,0.55)',
+          }}
+        >
+          <RobotFace />
+          <div className="flex flex-col items-start">
+            <span className="text-white font-bold text-sm leading-tight tracking-wide">Ask me</span>
+            <span style={{ color: 'rgba(255,255,255,0.65)' }} className="text-[10px] leading-tight">AI expense assistant</span>
+          </div>
+        </button>
+      )}
 
       {/* ── Chat panel ─────────────────────────────────────────────────── */}
       {open && (
