@@ -25,4 +25,7 @@ export const expensesApi = {
 
 export const categoriesApi = {
   list: () => client.get('/categories').then((r) => r.data),
+  create: (body) => client.post('/categories', body).then((r) => r.data),
+  update: (id, body) => client.patch(`/categories/${id}`, body).then((r) => r.data),
+  delete: (id) => client.delete(`/categories/${id}`),
 };

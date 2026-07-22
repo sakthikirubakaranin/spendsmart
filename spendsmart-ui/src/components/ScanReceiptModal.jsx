@@ -108,8 +108,8 @@ export default function ScanReceiptModal({ onClose, onSaved }) {
     }
   }
 
-  const inputClass = "w-full px-4 py-2.5 rounded-xl text-sm text-slate-100 placeholder-slate-600 outline-none transition-all"
-  const inputStyle = { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)' }
+  const inputClass = "w-full px-4 py-2.5 rounded-xl text-sm text-slate-100 placeholder-slate-400 outline-none transition-all"
+  const inputStyle = { background: 'var(--bg-input)', border: '1px solid var(--border-input)' }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -117,11 +117,11 @@ export default function ScanReceiptModal({ onClose, onSaved }) {
       onClick={e => e.target === e.currentTarget && onClose()}>
 
       <div className="w-full max-w-md rounded-2xl overflow-hidden shadow-2xl"
-        style={{ background: '#0f0f1e', border: '1px solid rgba(139,92,246,0.35)', maxHeight: '90vh', overflowY: 'auto' }}>
+        style={{ background: 'var(--bg-modal)', border: '1px solid rgba(139,92,246,0.35)', maxHeight: '90vh', overflowY: 'auto' }}>
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b"
-          style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
+          style={{ borderColor: 'var(--border-subtle)' }}>
           <div className="flex items-center gap-2">
             <Receipt size={16} className="text-violet-400" />
             <span className="text-sm font-semibold text-slate-100">Scan Receipt / Bill</span>
@@ -145,9 +145,9 @@ export default function ScanReceiptModal({ onClose, onSaved }) {
             </button>
 
             <div className="flex items-center gap-3">
-              <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.07)' }} />
+              <div className="flex-1 h-px" style={{ background: 'var(--bg-surface-hover)' }} />
               <span className="text-xs text-slate-600">or</span>
-              <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.07)' }} />
+              <div className="flex-1 h-px" style={{ background: 'var(--bg-surface-hover)' }} />
             </div>
 
             {/* File upload (desktop + mobile) */}
@@ -155,7 +155,7 @@ export default function ScanReceiptModal({ onClose, onSaved }) {
               className="hidden" onChange={e => handleFile(e.target.files?.[0])} />
             <button onClick={() => uploadRef.current?.click()}
               className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl text-sm font-medium text-slate-300 transition-all hover:text-white"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}>
+              style={{ background: 'var(--bg-button-ghost)', border: '1px solid var(--border-medium)' }}>
               <Upload size={18} />
               Upload Image or PDF
             </button>
@@ -171,11 +171,11 @@ export default function ScanReceiptModal({ onClose, onSaved }) {
           <div className="p-8 flex flex-col items-center gap-4">
             {preview && (
               <img src={preview} alt="Receipt" className="max-h-40 rounded-xl object-contain mb-2"
-                style={{ border: '1px solid rgba(255,255,255,0.1)' }} />
+                style={{ border: '1px solid var(--border-medium)' }} />
             )}
             {!preview && fileName && (
               <div className="px-4 py-3 rounded-xl text-xs text-slate-400"
-                style={{ background: 'rgba(255,255,255,0.05)' }}>{fileName}</div>
+                style={{ background: 'var(--bg-input)' }}>{fileName}</div>
             )}
             <Loader2 size={32} className="text-violet-400 animate-spin" />
             <p className="text-sm text-slate-300 font-medium">Reading your receipt…</p>
@@ -190,7 +190,7 @@ export default function ScanReceiptModal({ onClose, onSaved }) {
             <p className="text-sm text-rose-300 font-medium text-center">{errMsg}</p>
             <button onClick={() => setStep('pick')}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:text-white transition-colors"
-              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+              style={{ background: 'var(--bg-surface-hover)', border: '1px solid var(--border-medium)' }}>
               <RotateCcw size={14} /> Try Again
             </button>
           </div>
@@ -214,13 +214,13 @@ export default function ScanReceiptModal({ onClose, onSaved }) {
             {/* Image thumbnail */}
             {preview && (
               <img src={preview} alt="Receipt" className="w-full max-h-36 rounded-xl object-contain"
-                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }} />
+                style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }} />
             )}
 
             {/* Items list if extracted */}
             {scanResult.items?.length > 0 && (
               <div className="rounded-xl p-3 space-y-1.5"
-                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
                 <p className="text-xs text-slate-500 mb-2 font-medium">Detected items</p>
                 {scanResult.items.map((it, i) => (
                   <div key={i} className="flex justify-between text-xs">
@@ -262,7 +262,7 @@ export default function ScanReceiptModal({ onClose, onSaved }) {
                 value={form.category_id} onChange={e => set('category_id', e.target.value)}>
                 <option value="">— Select category —</option>
                 {categories.map(c => (
-                  <option key={c.id} value={c.id} style={{ background: '#0f0f1e' }}>
+                  <option key={c.id} value={c.id} style={{ background: 'var(--bg-modal)' }}>
                     {c.icon} {c.name}
                   </option>
                 ))}
@@ -279,7 +279,7 @@ export default function ScanReceiptModal({ onClose, onSaved }) {
               <select className={inputClass} style={inputStyle}
                 value={form.payment_method} onChange={e => set('payment_method', e.target.value)}>
                 {['UPI', 'NET_BANKING', 'DEBIT_CARD', 'CREDIT_CARD', 'CASH'].map(m => (
-                  <option key={m} value={m} style={{ background: '#0f0f1e' }}>{m.replace('_', ' ')}</option>
+                  <option key={m} value={m} style={{ background: 'var(--bg-modal)' }}>{m.replace('_', ' ')}</option>
                 ))}
               </select>
             </div>
@@ -295,7 +295,7 @@ export default function ScanReceiptModal({ onClose, onSaved }) {
             <div className="flex gap-3 pt-1">
               <button type="button" onClick={() => setStep('pick')}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs text-slate-400 hover:text-slate-200 transition-colors"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                style={{ background: 'var(--bg-input)', border: '1px solid var(--border-subtle)' }}>
                 <RotateCcw size={13} /> Rescan
               </button>
               <button type="submit" disabled={step === 'saving'}

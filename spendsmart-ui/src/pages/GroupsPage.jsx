@@ -27,7 +27,7 @@ function CreateGroupModal({ onClose, onCreate }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'var(--overlay-bg)' }}>
       <div className="glass rounded-2xl p-6 w-full max-w-md">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg font-bold text-white">New Group</h2>
@@ -52,7 +52,7 @@ function CreateGroupModal({ onClose, onCreate }) {
             />
           </div>
           <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 py-3 rounded-xl text-sm text-slate-400 hover:text-slate-200 transition-colors" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <button type="button" onClick={onClose} className="flex-1 py-3 rounded-xl text-sm text-slate-400 hover:text-slate-200 transition-colors" style={{ background: 'var(--bg-input)', border: '1px solid var(--border-subtle)' }}>
               Cancel
             </button>
             <button type="submit" disabled={loading || !name.trim()}

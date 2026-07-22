@@ -38,10 +38,10 @@ export default function RegisterPage() {
     income: '', budgetFood: '', budgetGrocery: '', budgetTransport: '',
   })
 
-  const inputClass = "w-full px-4 py-3 rounded-xl text-sm text-slate-100 placeholder-slate-600 outline-none transition-all"
-  const inputStyle = { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }
+  const inputClass = "w-full px-4 py-3 rounded-xl text-sm text-slate-100 placeholder-slate-400 outline-none transition-all"
+  const inputStyle = { background: 'var(--bg-button-ghost)', border: '1px solid var(--border-subtle)' }
   const inputFocus = e => e.target.style.borderColor = 'rgba(139,92,246,0.5)'
-  const inputBlur = e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'
+  const inputBlur = e => e.target.style.borderColor = 'var(--border-input)'
 
   async function handleGoogleSignup() {
     setError('')
@@ -84,7 +84,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center dot-grid px-4 py-12" style={{ background: '#07070f' }}>
+    <div className="min-h-screen flex items-center justify-center dot-grid px-4 py-12" style={{ background: 'var(--bg-void)' }}>
       <div className="w-full max-w-[440px]">
         {/* Logo */}
         <div className="flex items-center gap-2 mb-8">
@@ -100,12 +100,12 @@ export default function RegisterPage() {
             <div key={s} className="flex items-center flex-1 last:flex-none">
               <div className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold transition-all flex-shrink-0
                 ${i <= step ? 'text-white' : 'text-slate-600'}`}
-                style={{ background: i <= step ? 'linear-gradient(135deg,#8b5cf6,#06b6d4)' : 'rgba(255,255,255,0.06)' }}>
+                style={{ background: i <= step ? 'linear-gradient(135deg,#8b5cf6,#06b6d4)' : 'var(--bg-button-ghost)' }}>
                 {i < step ? <Check size={12} /> : i + 1}
               </div>
               <span className={`ml-2 text-xs font-medium ${i === step ? 'text-slate-200' : 'text-slate-600'}`}>{s}</span>
               {i < steps.length - 1 && (
-                <div className="flex-1 h-px mx-3" style={{ background: i < step ? 'rgba(139,92,246,0.4)' : 'rgba(255,255,255,0.07)' }} />
+                <div className="flex-1 h-px mx-3" style={{ background: i < step ? 'rgba(139,92,246,0.4)' : 'var(--border-subtle)' }} />
               )}
             </div>
           ))}
@@ -235,7 +235,7 @@ export default function RegisterPage() {
               {step > 0 && (
                 <button type="button" onClick={() => setStep(s => s - 1)}
                   className="flex-1 py-3 rounded-xl text-sm font-medium text-slate-400 hover:text-slate-200 transition-colors"
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  style={{ background: 'var(--bg-input)', border: '1px solid var(--border-subtle)' }}>
                   Back
                 </button>
               )}

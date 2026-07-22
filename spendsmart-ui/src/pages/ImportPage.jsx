@@ -194,7 +194,7 @@ export default function ImportPage() {
                     value={selectedAccountId}
                     onChange={e => setSelectedAccountId(e.target.value)}
                     className="text-xs rounded-lg px-2.5 py-1.5 outline-none"
-                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#c4b5fd' }}
+                    style={{ background: 'var(--bg-surface-hover)', border: '1px solid var(--border-medium)', color: '#c4b5fd' }}
                   >
                     <option value="">No account</option>
                     {bankAccounts.map(a => (
@@ -215,8 +215,8 @@ export default function ImportPage() {
                 onDrop={e => { e.preventDefault(); setDragOver(false); handleFile(e.dataTransfer.files[0]) }}
                 className="border-2 border-dashed rounded-xl p-14 flex flex-col items-center gap-3 cursor-pointer transition-all"
                 style={{
-                  borderColor: dragOver ? 'rgba(139,92,246,0.5)' : 'rgba(255,255,255,0.1)',
-                  background:  dragOver ? 'rgba(139,92,246,0.06)' : 'rgba(255,255,255,0.02)',
+                  borderColor: dragOver ? 'rgba(139,92,246,0.5)' : 'var(--border-input)',
+                  background:  dragOver ? 'rgba(139,92,246,0.06)' : 'var(--bg-surface)',
                 }}
               >
                 <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
@@ -230,13 +230,13 @@ export default function ImportPage() {
                 <div className="flex flex-wrap gap-2 mt-1 justify-center">
                   {['XLS', 'XLSX', 'CSV', 'PDF'].map(f => (
                     <span key={f} className="text-xs px-2.5 py-1 rounded-lg font-semibold text-slate-400"
-                      style={{ background: 'rgba(255,255,255,0.06)' }}>{f}</span>
+                      style={{ background: 'var(--bg-surface-hover)' }}>{f}</span>
                   ))}
                 </div>
                 <div className="flex flex-wrap gap-1.5 justify-center mt-2">
                   {['HDFC', 'HDFC CC', 'SBI', 'ICICI', 'Axis', 'Kotak', 'Yes Bank', 'IDFC'].map(b => (
                     <span key={b} className="text-[10px] px-2 py-0.5 rounded-md text-slate-500"
-                      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>{b}</span>
+                      style={{ background: 'var(--bg-button-ghost)', border: '1px solid var(--border-subtle)' }}>{b}</span>
                   ))}
                 </div>
                 <input ref={fileRef} type="file" className="hidden"
@@ -245,7 +245,7 @@ export default function ImportPage() {
               </div>
             ) : (
               <div className="rounded-xl p-6 flex items-center gap-4"
-                style={{ background: 'rgba(255,255,255,0.03)' }}>
+                style={{ background: 'var(--bg-surface)' }}>
                 <Loader size={20} className="text-violet-400 animate-spin flex-shrink-0" />
                 <span className="text-sm text-slate-300">Parsing your statement and auto-categorizing transactions…</span>
               </div>
@@ -265,7 +265,7 @@ export default function ImportPage() {
             </div>
             <button onClick={reset}
               className="text-sm px-4 py-2 rounded-xl font-medium text-slate-300"
-              style={{ background: 'rgba(255,255,255,0.06)' }}>
+              style={{ background: 'var(--bg-surface-hover)' }}>
               Try another file
             </button>
           </div>
@@ -292,7 +292,7 @@ export default function ImportPage() {
                 <div className="flex gap-2">
                   <button onClick={reset}
                     className="text-xs px-3 py-1.5 rounded-lg font-medium text-slate-500 hover:text-slate-300 transition-colors"
-                    style={{ background: 'rgba(255,255,255,0.04)' }}>
+                    style={{ background: 'var(--bg-button-ghost)' }}>
                     Cancel
                   </button>
                   <button onClick={handleConfirm}
@@ -342,10 +342,10 @@ export default function ImportPage() {
                   No expense transactions found in this file.
                 </div>
               ) : (
-                <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-subtle)' }}>
                   <table className="w-full">
                     <thead>
-                      <tr style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                      <tr style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-subtle)' }}>
                         <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500">Date</th>
                         <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500">Narration</th>
                         <th className="text-right px-4 py-2.5 text-xs font-semibold text-slate-500">Amount</th>
@@ -357,7 +357,7 @@ export default function ImportPage() {
                       {uploadData.debits.map((tx, i) => (
                         <tr key={tx.temp_id}
                           style={{
-                            borderBottom: i < uploadData.debits.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                            borderBottom: i < uploadData.debits.length - 1 ? '1px solid var(--border-subtle)' : 'none',
                             opacity: tx.is_duplicate ? 0.4 : 1,
                           }}>
                           <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{tx.date}</td>
@@ -381,7 +381,7 @@ export default function ImportPage() {
                                 value={categories[tx.temp_id] || 'others'}
                                 onChange={e => setCategories(prev => ({ ...prev, [tx.temp_id]: e.target.value }))}
                                 className="w-full text-xs px-2.5 py-1.5 rounded-lg text-slate-200 outline-none cursor-pointer"
-                                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}
+                                style={{ background: 'var(--bg-surface-hover)', border: '1px solid var(--border-subtle)' }}
                               >
                                 {ALL_CATEGORIES.map(c => (
                                   <option key={c.slug} value={c.slug}>{c.label}</option>
@@ -406,10 +406,10 @@ export default function ImportPage() {
                 <p className="text-xs text-slate-500 mb-4">
                   These are credits to your account. Tag them correctly so your income is tracked.
                 </p>
-                <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-subtle)' }}>
                   <table className="w-full">
                     <thead>
-                      <tr style={{ background: 'rgba(16,185,129,0.05)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                      <tr style={{ background: 'rgba(16,185,129,0.05)', borderBottom: '1px solid var(--border-subtle)' }}>
                         <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500">Date</th>
                         <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500">Description</th>
                         <th className="text-right px-4 py-2.5 text-xs font-semibold text-slate-500">Amount</th>
@@ -421,7 +421,7 @@ export default function ImportPage() {
                       {uploadData.credits.map((tx, i) => (
                         <tr key={tx.temp_id}
                           style={{
-                            borderBottom: i < uploadData.credits.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                            borderBottom: i < uploadData.credits.length - 1 ? '1px solid var(--border-subtle)' : 'none',
                             opacity: tx.is_duplicate ? 0.4 : 1,
                           }}>
                           <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{tx.date}</td>
@@ -496,7 +496,7 @@ export default function ImportPage() {
             <div className="flex justify-center gap-3">
               <button onClick={reset}
                 className="px-5 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-slate-200 transition-colors"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                style={{ background: 'var(--bg-input)', border: '1px solid var(--border-subtle)' }}>
                 Import Another
               </button>
               <button onClick={() => navigate('/dashboard')}
@@ -521,7 +521,7 @@ export default function ImportPage() {
             <div className="space-y-3">
               {history.map(h => (
                 <div key={h.id} className="flex items-center gap-4 p-4 rounded-xl"
-                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                     style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.25)' }}>
                     <FileText size={16} className="text-violet-400" />

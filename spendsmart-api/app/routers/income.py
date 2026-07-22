@@ -1,5 +1,5 @@
 """
-Manual income CRUD endpoints.
+Manual income CRUD + analytics endpoints.
 """
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
-from sqlalchemy import func, select
+from sqlalchemy import extract, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_user, get_db
@@ -79,6 +79,36 @@ class IncomeListResponse(BaseModel):
     page: int
     per_page: int
     pages: int
+
+
+class IncomeSummary(BaseModel):
+    this_month_total: float
+    last_month_total: float
+    ytd_total: float
+    avg_monthly: float
+    this_month_count: int
+    ytd_count: int
+
+
+class IncomeByType(BaseModel):
+    income_type: str
+    total: float
+    count: int
+    pct: float
+
+
+class IncomeMonthlyTrend(BaseModel):
+    year: int
+    month: int
+    total: float
+    count: int
+
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+def _month_range(year: int, month: int):
+    last_day = calendar.monthrange(year, month)[1]
+    return date(year, month, 1), date(year, month, last_day)
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -183,3 +213,144 @@ async def delete_income(
         raise HTTPException(status_code=404, detail="Income entry not found")
     await db.delete(entry)
     await db.commit()
+
+
+# ── Analytics ─────────────────────────────────────────────────────────────────
+
+@router.get("/summary", response_model=IncomeSummary)
+async def income_summary(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    today = date.today()
+    tm_start, tm_end = _month_range(today.year, today.month)
+
+    lm_year = today.year if today.month > 1 else today.year - 1
+    lm_month = today.month - 1 if today.month > 1 else 12
+    lm_start, lm_end = _month_range(lm_year, lm_month)
+
+    ytd_start = date(today.year, 1, 1)
+
+    uid = current_user.id
+
+    def _sum_q(from_d, to_d):
+        return select(
+            func.coalesce(func.sum(Income.amount), 0).label("total"),
+            func.count(Income.id).label("cnt"),
+        ).where(
+            Income.user_id == uid,
+            Income.date >= from_d,
+            Income.date <= to_d,
+        )
+
+    tm = (await db.execute(_sum_q(tm_start, tm_end))).one()
+    lm = (await db.execute(_sum_q(lm_start, lm_end))).one()
+    ytd = (await db.execute(_sum_q(ytd_start, today))).one()
+
+    # Average over months that actually have income
+    months_with_income_q = select(func.count()).select_from(
+        select(
+            extract("year", Income.date).label("y"),
+            extract("month", Income.date).label("m"),
+        )
+        .where(Income.user_id == uid)
+        .group_by("y", "m")
+        .subquery()
+    )
+    months_count = (await db.execute(months_with_income_q)).scalar_one() or 1
+    all_total_q = select(func.coalesce(func.sum(Income.amount), 0)).where(Income.user_id == uid)
+    all_total = (await db.execute(all_total_q)).scalar_one()
+
+    return IncomeSummary(
+        this_month_total=float(tm.total),
+        last_month_total=float(lm.total),
+        ytd_total=float(ytd.total),
+        avg_monthly=float(all_total) / months_count,
+        this_month_count=int(tm.cnt),
+        ytd_count=int(ytd.cnt),
+    )
+
+
+@router.get("/by-type", response_model=list[IncomeByType])
+async def income_by_type(
+    year: Optional[int] = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    today = date.today()
+    yr = year or today.year
+    from_d = date(yr, 1, 1)
+    to_d = date(yr, 12, 31)
+
+    q = (
+        select(
+            Income.income_type,
+            func.sum(Income.amount).label("total"),
+            func.count(Income.id).label("cnt"),
+        )
+        .where(
+            Income.user_id == current_user.id,
+            Income.date >= from_d,
+            Income.date <= to_d,
+        )
+        .group_by(Income.income_type)
+        .order_by(func.sum(Income.amount).desc())
+    )
+    rows = (await db.execute(q)).all()
+    grand = sum(float(r.total) for r in rows) or 1
+    return [
+        IncomeByType(
+            income_type=r.income_type,
+            total=float(r.total),
+            count=int(r.cnt),
+            pct=round(float(r.total) / grand * 100, 1),
+        )
+        for r in rows
+    ]
+
+
+@router.get("/monthly-trend", response_model=list[IncomeMonthlyTrend])
+async def income_monthly_trend(
+    months: int = Query(12, ge=1, le=36),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    today = date.today()
+
+    # Build list of N months going back from current month
+    result_months = []
+    for i in range(months - 1, -1, -1):
+        m = today.month - i
+        y = today.year
+        while m <= 0:
+            m += 12
+            y -= 1
+        result_months.append((y, m))
+
+    from_d = date(result_months[0][0], result_months[0][1], 1)
+
+    q = (
+        select(
+            extract("year", Income.date).label("y"),
+            extract("month", Income.date).label("m"),
+            func.sum(Income.amount).label("total"),
+            func.count(Income.id).label("cnt"),
+        )
+        .where(
+            Income.user_id == current_user.id,
+            Income.date >= from_d,
+            Income.date <= today,
+        )
+        .group_by("y", "m")
+    )
+    db_rows = {(int(r.y), int(r.m)): r for r in (await db.execute(q)).all()}
+
+    return [
+        IncomeMonthlyTrend(
+            year=y,
+            month=m,
+            total=float(db_rows[(y, m)].total) if (y, m) in db_rows else 0.0,
+            count=int(db_rows[(y, m)].cnt) if (y, m) in db_rows else 0,
+        )
+        for y, m in result_months
+    ]

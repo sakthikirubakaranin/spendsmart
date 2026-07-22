@@ -12,60 +12,79 @@ import { expensesApi } from '../api/expenses'
 import { formatINR } from '../utils/currency'
 
 // ── Date range helpers ────────────────────────────────────────────────────────
-function getDateRange(filter) {
-  const today = new Date()
-  const pad = n => String(n).padStart(2, '0')
-  const fmt = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+const _pad = n => String(n).padStart(2, '0')
+const _fmt = d => `${d.getFullYear()}-${_pad(d.getMonth() + 1)}-${_pad(d.getDate())}`
 
-  switch (filter) {
-    case 'This Month': {
-      const from = new Date(today.getFullYear(), today.getMonth(), 1)
-      return { from: fmt(from), to: fmt(today) }
+function getParams(filterMode) {
+  const today = new Date()
+  if (!filterMode) return {}
+
+  if (filterMode.type === 'preset') {
+    switch (filterMode.label) {
+      case 'This Month': {
+        const from = new Date(today.getFullYear(), today.getMonth(), 1)
+        return { from_date: _fmt(from), to_date: _fmt(today) }
+      }
+      case 'Last Month': {
+        const from = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+        const to   = new Date(today.getFullYear(), today.getMonth(), 0)
+        return { from_date: _fmt(from), to_date: _fmt(to) }
+      }
+      case 'Last 3 Months': {
+        const from = new Date(today.getFullYear(), today.getMonth() - 2, 1)
+        return { from_date: _fmt(from), to_date: _fmt(today) }
+      }
+      case 'Last 6 Months': {
+        const from = new Date(today.getFullYear(), today.getMonth() - 5, 1)
+        return { from_date: _fmt(from), to_date: _fmt(today) }
+      }
+      case 'Last Year': {
+        const from = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate())
+        return { from_date: _fmt(from), to_date: _fmt(today) }
+      }
+      default: return {}
     }
-    case 'Last Month': {
-      const from = new Date(today.getFullYear(), today.getMonth() - 1, 1)
-      const to   = new Date(today.getFullYear(), today.getMonth(), 0)
-      return { from: fmt(from), to: fmt(to) }
-    }
-    case 'Last 3 Months': {
-      const from = new Date(today.getFullYear(), today.getMonth() - 2, 1)
-      return { from: fmt(from), to: fmt(today) }
-    }
-    case 'Last 6 Months': {
-      const from = new Date(today.getFullYear(), today.getMonth() - 5, 1)
-      return { from: fmt(from), to: fmt(today) }
-    }
-    case 'Last Year': {
-      const from = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate())
-      return { from: fmt(from), to: fmt(today) }
-    }
-    default:
-      return {}
   }
+
+  if (filterMode.type === 'month') {
+    const { year, month } = filterMode
+    const lastDay = new Date(year, month, 0).getDate()
+    return {
+      from_date: `${year}-${_pad(month)}-01`,
+      to_date:   `${year}-${_pad(month)}-${lastDay}`,
+    }
+  }
+
+  if (filterMode.type === 'custom') {
+    return { from_date: filterMode.from, to_date: filterMode.to }
+  }
+
+  return {}
 }
 
 // ── Components ────────────────────────────────────────────────────────────────
 function MetricCard({ label, value, sub, trend, icon: Icon, accent }) {
   const colors = {
-    purple: { bg: 'rgba(139,92,246,0.15)', border: 'rgba(139,92,246,0.25)', icon: '#a78bfa' },
-    cyan:   { bg: 'rgba(6,182,212,0.12)',  border: 'rgba(6,182,212,0.25)',  icon: '#22d3ee' },
-    green:  { bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.25)', icon: '#34d399' },
-    rose:   { bg: 'rgba(244,63,94,0.12)',  border: 'rgba(244,63,94,0.25)',  icon: '#fb7185' },
-    amber:  { bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.25)', icon: '#fbbf24' },
+    purple: { bg: 'rgba(139,92,246,0.12)', border: 'rgba(139,92,246,0.22)', icon: '#8b5cf6' },
+    cyan:   { bg: 'rgba(6,182,212,0.10)',  border: 'rgba(6,182,212,0.22)',  icon: '#06b6d4' },
+    green:  { bg: 'rgba(16,185,129,0.10)', border: 'rgba(16,185,129,0.22)', icon: '#10b981' },
+    rose:   { bg: 'rgba(244,63,94,0.10)',  border: 'rgba(244,63,94,0.22)',  icon: '#f43f5e' },
+    amber:  { bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.22)', icon: '#f59e0b' },
   }
   const c = colors[accent] || colors.purple
   return (
     <div className="glass rounded-2xl p-5 flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <span className="text-white/50 text-sm">{label}</span>
+        <span className="text-sm" style={{ color: 'var(--text-muted)' }}>{label}</span>
         <div className="w-9 h-9 rounded-xl flex items-center justify-center"
           style={{ background: c.bg, border: `1px solid ${c.border}` }}>
           <Icon size={16} style={{ color: c.icon }} />
         </div>
       </div>
-      <div className="text-2xl font-bold text-white">{value}</div>
+      <div className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{value}</div>
       {sub && (
-        <div className={`flex items-center gap-1 text-xs ${trend === 'up' ? 'text-rose-400' : trend === 'down' ? 'text-emerald-400' : 'text-slate-500'}`}>
+        <div className={`flex items-center gap-1 text-xs ${trend === 'up' ? 'text-rose-500' : trend === 'down' ? 'text-emerald-500' : ''}`}
+          style={!trend ? { color: 'var(--text-muted)' } : {}}>
           {trend === 'up' ? <TrendingUp size={12} /> : trend === 'down' ? <TrendingDown size={12} /> : null}
           {sub}
         </div>
@@ -81,7 +100,7 @@ function Skeleton({ className = '' }) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function DashboardPage() {
   const navigate = useNavigate()
-  const [filter, setFilter]               = useState('Last Month')
+  const [filterMode, setFilterMode]        = useState({ type: 'preset', label: 'Last Month' })
   const [summary, setSummary]             = useState(null)
   const [categoryData, setCategoryData]   = useState([])
   const [trendData, setTrendData]         = useState([])
@@ -111,23 +130,21 @@ export default function DashboardPage() {
   useEffect(() => {
     setLoading(true)
     setError('')
-    const { from, to } = getDateRange(filter)
-    const params = from ? { from_date: from, to_date: to } : {}
+    const params = getParams(filterMode)
     fetchAll(params)
       .catch(() => setError('Failed to load dashboard data'))
       .finally(() => setLoading(false))
-  }, [filter])
+  }, [filterMode])
 
   const netPositive = (summary?.net_balance ?? 0) >= 0
 
   function refreshAll() {
-    const { from, to } = getDateRange(filter)
-    const params = from ? { from_date: from, to_date: to } : {}
+    const params = getParams(filterMode)
     fetchAll(params).catch(() => {})
   }
 
   return (
-    <Layout title="Dashboard" activeFilter={filter} onFilterChange={setFilter} onDataChanged={refreshAll}>
+    <Layout title="Dashboard" filterMode={filterMode} onFilterModeChange={setFilterMode} onDataChanged={refreshAll}>
 
       {error && (
         <div className="mb-4 px-4 py-3 rounded-xl text-rose-400 text-sm"

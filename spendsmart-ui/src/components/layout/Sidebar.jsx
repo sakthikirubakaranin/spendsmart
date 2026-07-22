@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Receipt, Upload, PieChart,
-  Target, Lightbulb, Repeat, FileText, Settings, LogOut, Users, SplitSquareVertical, CreditCard
+  Target, Lightbulb, Repeat, FileText, Settings, LogOut, SplitSquareVertical, CreditCard, TrendingUp
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import Logo from '../Logo'
@@ -12,12 +12,13 @@ const navItems = [
   { to: '/import',    icon: Upload,          label: 'Import'    },
   { to: '/analytics', icon: PieChart,        label: 'Analytics' },
   { to: '/budgets',   icon: Target,          label: 'Budgets'   },
-  { to: '/tips',       icon: Lightbulb, label: 'Tips'      },
-  { to: '/recurring',  icon: Repeat,    label: 'Recurring' },
-  { to: '/groups',     icon: SplitSquareVertical, label: 'Split & Groups' },
-  { to: '/accounts',   icon: CreditCard,          label: 'Accounts'      },
-  { to: '/reports',    icon: FileText,  label: 'Reports'   },
-  { to: '/settings',  icon: Settings,        label: 'Settings'  },
+  { to: '/tips',       icon: Lightbulb,           label: 'Tips'           },
+  { to: '/recurring',  icon: Repeat,              label: 'Recurring'      },
+  { to: '/groups',     icon: SplitSquareVertical,  label: 'Split & Groups' },
+  { to: '/accounts',   icon: CreditCard,           label: 'Accounts'       },
+  { to: '/income',     icon: TrendingUp,           label: 'Income'         },
+  { to: '/reports',    icon: FileText,             label: 'Reports'        },
+  { to: '/settings',   icon: Settings,             label: 'Settings'       },
 ]
 
 export default function Sidebar() {
@@ -43,19 +44,16 @@ export default function Sidebar() {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-2 space-y-0.5">
+      <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto">
         {navItems.map(({ to, icon: Icon, label }) => (
           <NavLink key={to} to={to}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150
-               ${isActive
-                ? 'text-white'
-                : 'text-slate-500 hover:text-slate-200 hover:bg-white/5'
-              }`
+               ${isActive ? '' : 'hover:bg-white/5'}`
             }
             style={({ isActive }) => isActive
-              ? { background: 'rgba(139,92,246,0.15)', color: '#a78bfa', border: '1px solid rgba(139,92,246,0.25)' }
-              : {}
+              ? { background: 'rgba(139,92,246,0.12)', color: '#7c3aed', border: '1px solid rgba(139,92,246,0.2)' }
+              : { color: 'var(--text-muted)', border: '1px solid transparent' }
             }
           >
             <Icon size={16} />
@@ -72,13 +70,14 @@ export default function Sidebar() {
             {initials}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium text-slate-200 truncate">{user?.full_name ?? 'User'}</p>
-            <p className="text-xs text-slate-500 truncate">{user?.email ?? ''}</p>
+            <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{user?.full_name ?? 'User'}</p>
+            <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{user?.email ?? ''}</p>
           </div>
         </div>
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-all"
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-white/5 transition-all"
+          style={{ color: 'var(--text-muted)' }}
         >
           <LogOut size={15} />
           Sign out

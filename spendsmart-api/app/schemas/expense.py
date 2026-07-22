@@ -10,6 +10,8 @@ class CategoryOut(BaseModel):
     slug: str
     name: str
     icon: Optional[str] = None
+    color: Optional[str] = None
+    is_system: bool = True
     model_config = {"from_attributes": True}
 
 
@@ -81,6 +83,7 @@ class ExpenseOut(BaseModel):
 class ExpenseListResponse(BaseModel):
     items: list[ExpenseOut]
     total: int
+    total_amount: float = 0.0
     page: int
     per_page: int
     pages: int
