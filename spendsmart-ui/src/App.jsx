@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { useAuth } from './hooks/useAuth'
+import AIChatWidget from './components/AIChatWidget'
 import DashboardPage from './pages/DashboardPage'
 import ExpensesPage from './pages/ExpensesPage'
 import ImportPage from './pages/ImportPage'
@@ -28,7 +29,13 @@ function RequireAuth({ children }) {
       </div>
     )
   }
-  return user ? children : <Navigate to="/login" replace />
+  if (!user) return <Navigate to="/login" replace />
+  return (
+    <>
+      {children}
+      <AIChatWidget />
+    </>
+  )
 }
 
 function GuestOnly({ children }) {

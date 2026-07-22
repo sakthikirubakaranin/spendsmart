@@ -1,4 +1,4 @@
-import { client as api } from './client'
+import api from './client'
 
 export const bankAccountsApi = {
   list: () =>

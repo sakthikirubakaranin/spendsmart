@@ -162,7 +162,7 @@ function AccountModal({ account, onClose, onSaved }) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'var(--overlay-bg)', backdropFilter: 'blur(4px)' }}
+      style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
       onClick={e => e.target === e.currentTarget && onClose()}
     >
       <div className="w-full max-w-md rounded-2xl p-6"
@@ -324,7 +324,7 @@ function DeleteModal({ account, onClose, onDeleted }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'var(--overlay-bg)', backdropFilter: 'blur(4px)' }}
+      style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
       onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="w-full max-w-sm rounded-2xl p-6"
         style={{ background: 'var(--bg-card)', border: '1px solid rgba(244,63,94,0.3)' }}>

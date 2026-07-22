@@ -61,7 +61,9 @@ jobs:
             --set-secrets "REDIS_URL=spendsmart-redis-url:latest" \
             --set-secrets "JWT_SECRET=spendsmart-jwt-secret:latest" \
             --set-secrets "MAIL_USERNAME=spendsmart-mail-username:latest" \
-            --set-secrets "MAIL_PASSWORD=spendsmart-mail-password:latest"
+            --set-secrets "MAIL_PASSWORD=spendsmart-mail-password:latest" \
+            --set-secrets "GOOGLE_AI_API_KEY=spendsmart-google-ai-key:latest" \
+            --set-secrets "AI_ENCRYPTION_KEY=spendsmart-ai-encryption-key:latest"
 
       - name: Show service URL
         run: |

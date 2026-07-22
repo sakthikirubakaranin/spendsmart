@@ -23,7 +23,7 @@ function AddMemberModal({ groupId, onClose, onAdded }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'var(--overlay-bg)' }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
       <div className="glass rounded-2xl p-6 w-full max-w-sm">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg font-bold text-white">Add Member</h2>
@@ -39,7 +39,7 @@ function AddMemberModal({ groupId, onClose, onAdded }) {
             <p className="text-xs text-slate-600 mt-1.5">They must already have a SpendSmart account</p>
           </div>
           <div className="flex gap-3">
-            <button type="button" onClick={onClose} className="flex-1 py-3 rounded-xl text-sm text-slate-400 hover:text-slate-200 transition-colors" style={{ background: 'var(--bg-input)', border: '1px solid var(--border-subtle)' }}>Cancel</button>
+            <button type="button" onClick={onClose} className="flex-1 py-3 rounded-xl text-sm text-slate-400 hover:text-slate-200 transition-colors" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>Cancel</button>
             <button type="submit" disabled={loading} className="flex-1 py-3 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90" style={{ background: 'linear-gradient(135deg,#8b5cf6,#06b6d4)' }}>
               {loading ? 'Adding…' : 'Add Member'}
             </button>
@@ -91,7 +91,7 @@ function AddExpenseModal({ groupId, members, onClose, onAdded }) {
   const amtNum = parseFloat(amount || 0)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'var(--overlay-bg)' }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
       <div className="glass rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg font-bold text-white">Add Expense</h2>
@@ -113,7 +113,7 @@ function AddExpenseModal({ groupId, members, onClose, onAdded }) {
             <label className="text-xs text-slate-400 font-semibold uppercase tracking-wider block mb-1.5">Paid by</label>
             <select value={paidBy} onChange={e => setPaidBy(e.target.value)}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-violet-500/50 text-sm">
-              {members.map(m => <option key={m.user_id} value={m.user_id} style={{ background: 'var(--bg-sidebar)' }}>{m.user.full_name}</option>)}
+              {members.map(m => <option key={m.user_id} value={m.user_id} style={{ background: '#0a0a16' }}>{m.user.full_name}</option>)}
             </select>
           </div>
           <div>
@@ -122,7 +122,7 @@ function AddExpenseModal({ groupId, members, onClose, onAdded }) {
               {['equal', 'custom'].map(t => (
                 <button key={t} type="button" onClick={() => setSplitType(t)}
                   className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all capitalize ${splitType === t ? 'text-white' : 'text-slate-500 hover:text-slate-300'}`}
-                  style={splitType === t ? { background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.4)' } : { background: 'var(--bg-button-ghost)', border: '1px solid var(--border-subtle)' }}>
+                  style={splitType === t ? { background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.4)' } : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
                   {t}
                 </button>
               ))}
@@ -130,7 +130,7 @@ function AddExpenseModal({ groupId, members, onClose, onAdded }) {
           </div>
 
           {splitType === 'equal' && amtNum > 0 && (
-            <div className="rounded-xl p-3 space-y-1.5" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
+            <div className="rounded-xl p-3 space-y-1.5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
               <p className="text-xs text-slate-500 mb-2">Each person pays:</p>
               {members.map(m => (
                 <div key={m.user_id} className="flex items-center justify-between text-sm">
@@ -163,7 +163,7 @@ function AddExpenseModal({ groupId, members, onClose, onAdded }) {
           )}
 
           <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 py-3 rounded-xl text-sm text-slate-400 hover:text-slate-200" style={{ background: 'var(--bg-input)', border: '1px solid var(--border-subtle)' }}>Cancel</button>
+            <button type="button" onClick={onClose} className="flex-1 py-3 rounded-xl text-sm text-slate-400 hover:text-slate-200" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>Cancel</button>
             <button type="submit" disabled={loading} className="flex-1 py-3 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90" style={{ background: 'linear-gradient(135deg,#8b5cf6,#06b6d4)' }}>
               {loading ? 'Adding…' : 'Add Expense'}
             </button>
@@ -263,7 +263,7 @@ export default function GroupDetailPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-5 p-1 rounded-xl" style={{ background: 'var(--bg-button-ghost)', border: '1px solid var(--border-subtle)' }}>
+        <div className="flex gap-1 mb-5 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
           {TABS.map(t => (
             <button key={t} onClick={() => setTab(t)}
               className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${tab === t ? 'text-white' : 'text-slate-500 hover:text-slate-300'}`}

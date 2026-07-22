@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import {
   User, Bell, Shield, Database, Save, CheckCircle,
   Eye, EyeOff, Trash2, AlertTriangle, X, Loader2, Palette,
-  Moon, Sun, Tag, Plus, Pencil,
+  Moon, Sun, Tag, Plus, Pencil, Sparkles,
 } from 'lucide-react'
 import Layout from '../components/layout/Layout'
 import { usersApi } from '../api/users'
 import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../context/ThemeContext'
 import { categoriesApi } from '../api/expenses'
+import { aiApi } from '../api/ai'
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
@@ -77,9 +78,17 @@ const TABS = [
   { id: 'profile',       label: 'Profile',        icon: User     },
   { id: 'appearance',    label: 'Appearance',      icon: Palette  },
   { id: 'categories',    label: 'Categories',      icon: Tag      },
+  { id: 'ai',            label: 'AI Assistant',    icon: Sparkles },
   { id: 'security',      label: 'Security',        icon: Shield   },
   { id: 'notifications', label: 'Notifications',   icon: Bell     },
   { id: 'data',          label: 'Data & Privacy',  icon: Database },
+]
+
+const AI_PROVIDERS = [
+  { value: 'gemini',    label: 'Google Gemini',  note: 'Gemini 1.5 Flash' },
+  { value: 'openai',    label: 'OpenAI',         note: 'GPT-4o Mini' },
+  { value: 'anthropic', label: 'Anthropic',      note: 'Claude Haiku' },
+  { value: 'groq',      label: 'Groq',           note: 'Llama 3.3 70B' },
 ]
 
 const CAT_COLORS = [
@@ -155,6 +164,60 @@ export default function SettingsPage() {
   const [deleteModal, setDeleteModal] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState('')
   const [deleting, setDeleting] = useState(false)
+
+  // AI Assistant BYOK
+  const [aiSettings, setAiSettings] = useState(null)   // {provider, has_key, using_default}
+  const [aiProvider, setAiProvider] = useState('gemini')
+  const [aiKey, setAiKey] = useState('')
+  const [showAiKey, setShowAiKey] = useState(false)
+  const [aiSaving, setAiSaving] = useState(false)
+  const [aiRemoving, setAiRemoving] = useState(false)
+  const [aiMsg, setAiMsg] = useState({ type: '', text: '' })
+
+  useEffect(() => {
+    if (tab === 'ai') {
+      aiApi.getSettings()
+        .then(data => {
+          setAiSettings(data)
+          if (data.provider) setAiProvider(data.provider)
+        })
+        .catch(() => {})
+    }
+  }, [tab])
+
+  async function handleAiSave(e) {
+    e.preventDefault()
+    if (!aiKey.trim()) return
+    setAiSaving(true)
+    setAiMsg({ type: '', text: '' })
+    try {
+      const data = await aiApi.saveSettings(aiProvider, aiKey)
+      setAiSettings(data)
+      setAiKey('')
+      setAiMsg({ type: 'success', text: 'API key saved and encrypted successfully!' })
+      setTimeout(() => setAiMsg({ type: '', text: '' }), 3000)
+    } catch (err) {
+      setAiMsg({ type: 'error', text: err?.response?.data?.detail || 'Failed to save settings' })
+    } finally {
+      setAiSaving(false)
+    }
+  }
+
+  async function handleAiRemove() {
+    setAiRemoving(true)
+    try {
+      const data = await aiApi.removeSettings()
+      setAiSettings(data)
+      setAiProvider('gemini')
+      setAiKey('')
+      setAiMsg({ type: 'success', text: 'Removed — now using server default (Gemini).' })
+      setTimeout(() => setAiMsg({ type: '', text: '' }), 3000)
+    } catch {
+      setAiMsg({ type: 'error', text: 'Failed to remove settings' })
+    } finally {
+      setAiRemoving(false)
+    }
+  }
 
   useEffect(() => {
     usersApi.profile()
@@ -578,6 +641,175 @@ export default function SettingsPage() {
                   </div>
                 </form>
               </div>
+            </div>
+          )}
+
+          {/* ── AI Assistant ─────────────────────────────────────────────── */}
+          {tab === 'ai' && (
+            <div>
+              <h2 className="text-base font-semibold text-slate-200 mb-5">AI Assistant</h2>
+
+              {/* Current status banner */}
+              <div className="glass rounded-2xl p-4 mb-4 flex items-center gap-3"
+                style={{ border: '1px solid rgba(139,92,246,0.2)' }}>
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.3), rgba(6,182,212,0.2))' }}>
+                  <Sparkles size={16} className="text-violet-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  {aiSettings?.using_default !== false ? (
+                    <>
+                      <p className="text-sm font-medium text-slate-200">Using server default</p>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Powered by Gemini 1.5 Flash (free shared key — up to ~300 daily active users)
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm font-medium text-slate-200">
+                        Using your API key · {AI_PROVIDERS.find(p => p.value === aiSettings.provider)?.label}
+                      </p>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {AI_PROVIDERS.find(p => p.value === aiSettings.provider)?.note} — your usage, your limits
+                      </p>
+                    </>
+                  )}
+                </div>
+                <span className="text-xs px-2 py-1 rounded-lg flex-shrink-0 font-medium"
+                  style={aiSettings?.using_default !== false
+                    ? { background: 'rgba(16,185,129,0.1)', color: '#34d399' }
+                    : { background: 'rgba(139,92,246,0.15)', color: '#a78bfa' }}>
+                  {aiSettings?.using_default !== false ? 'Free tier' : 'BYOK'}
+                </span>
+              </div>
+
+              <InlineAlert type={aiMsg.type} msg={aiMsg.text} onClose={() => setAiMsg({ type: '', text: '' })} />
+
+              {/* BYOK form */}
+              <Section title="Bring Your Own API Key (optional)">
+                <div className="px-5 py-4">
+                  <p className="text-xs text-slate-500 mb-4 leading-relaxed">
+                    By default SpendSmart uses a shared Gemini key (free). If you have your own key,
+                    you get dedicated rate limits and can choose your preferred model.
+                    Your key is encrypted with AES-256 before storage and never logged.
+                  </p>
+
+                  <form onSubmit={handleAiSave} className="space-y-4">
+                    {/* Provider */}
+                    <div>
+                      <label className="text-xs font-semibold uppercase tracking-wider mb-2 block text-slate-400">
+                        Provider
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {AI_PROVIDERS.map(p => (
+                          <button
+                            key={p.value}
+                            type="button"
+                            onClick={() => setAiProvider(p.value)}
+                            className="flex flex-col items-start px-3 py-2.5 rounded-xl text-left transition-all"
+                            style={{
+                              background: aiProvider === p.value
+                                ? 'rgba(139,92,246,0.12)'
+                                : 'var(--bg-surface)',
+                              border: aiProvider === p.value
+                                ? '1.5px solid rgba(139,92,246,0.45)'
+                                : '1px solid var(--border-subtle)',
+                            }}
+                          >
+                            <span className="text-xs font-semibold" style={{ color: aiProvider === p.value ? '#a78bfa' : 'var(--text-primary)' }}>
+                              {p.label}
+                            </span>
+                            <span className="text-xs text-slate-500 mt-0.5">{p.note}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* API Key input */}
+                    <div>
+                      <label className="text-xs font-semibold uppercase tracking-wider mb-2 block text-slate-400">
+                        API Key
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showAiKey ? 'text' : 'password'}
+                          value={aiKey}
+                          onChange={e => setAiKey(e.target.value)}
+                          placeholder={
+                            aiSettings?.has_key
+                              ? '••••••••  (leave blank to keep existing key)'
+                              : 'Paste your API key here'
+                          }
+                          className="w-full px-3 py-2.5 pr-10 rounded-xl text-sm outline-none"
+                          style={{
+                            background: 'var(--bg-input)',
+                            border: '1px solid var(--border-subtle)',
+                            color: 'var(--text-primary)',
+                            fontFamily: aiKey ? 'monospace' : 'inherit',
+                          }}
+                          onFocus={e => (e.target.style.borderColor = 'rgba(139,92,246,0.5)')}
+                          onBlur={e => (e.target.style.borderColor = 'var(--border-subtle)')}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowAiKey(v => !v)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                        >
+                          {showAiKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                        </button>
+                      </div>
+                      <p className="text-xs text-slate-600 mt-1.5">
+                        {aiProvider === 'gemini' && 'Get a key at: aistudio.google.com/apikey'}
+                        {aiProvider === 'openai' && 'Get a key at: platform.openai.com/api-keys'}
+                        {aiProvider === 'anthropic' && 'Get a key at: console.anthropic.com/settings/keys'}
+                        {aiProvider === 'groq' && 'Get a key at: console.groq.com/keys'}
+                      </p>
+                    </div>
+
+                    <div className="flex gap-3 pt-1">
+                      <button
+                        type="submit"
+                        disabled={aiSaving || !aiKey.trim()}
+                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+                        style={{ background: 'linear-gradient(135deg, #8b5cf6, #06b6d4)' }}
+                      >
+                        {aiSaving
+                          ? <><Loader2 size={14} className="animate-spin" /> Saving…</>
+                          : <><Save size={14} /> Save Key</>}
+                      </button>
+
+                      {aiSettings?.has_key && (
+                        <button
+                          type="button"
+                          onClick={handleAiRemove}
+                          disabled={aiRemoving}
+                          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-rose-500/10 disabled:opacity-40"
+                          style={{ border: '1px solid rgba(244,63,94,0.3)', color: '#fb7185' }}
+                        >
+                          {aiRemoving
+                            ? <Loader2 size={14} className="animate-spin" />
+                            : <><Trash2 size={14} /> Remove Key</>}
+                        </button>
+                      )}
+                    </div>
+                  </form>
+                </div>
+              </Section>
+
+              <Section title="How it works">
+                <div className="px-5 py-4 space-y-3 text-xs text-slate-500 leading-relaxed">
+                  <p>
+                    When you ask a question, SpendSmart fetches your expense history from the database,
+                    formats it as structured data, and sends it alongside your question to the AI.
+                    No third-party service stores your data — it is sent in a single request and discarded immediately.
+                  </p>
+                  <p>
+                    <span className="text-slate-400 font-medium">Example questions: </span>
+                    "How much did I spend on food last month?", "What's my biggest expense category?",
+                    "Am I spending more than last month?", "Show all transactions above ₹5,000 in June".
+                  </p>
+                </div>
+              </Section>
             </div>
           )}
 

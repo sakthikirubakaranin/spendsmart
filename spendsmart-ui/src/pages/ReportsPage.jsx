@@ -20,7 +20,7 @@ export default function ReportsPage() {
   }
 
   const inputClass = "px-3 py-2 rounded-xl text-sm text-slate-200 outline-none transition-all"
-  const inputStyle = { background: 'var(--bg-input)', border: '1px solid var(--border-subtle)' }
+  const inputStyle = { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }
 
   const ExportCard = ({ type, icon: Icon, title, desc, color, ext }) => (
     <div className="glass rounded-2xl p-5 flex items-center justify-between gap-4 relative overflow-hidden">
@@ -57,7 +57,7 @@ export default function ReportsPage() {
               {MONTHS.map(m => (
                 <button key={m} onClick={() => setSelectedMonth(m)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${selectedMonth === m ? 'text-white' : 'text-slate-500 hover:text-slate-300'}`}
-                  style={selectedMonth === m ? { background: 'rgba(139,92,246,0.25)', border: '1px solid rgba(139,92,246,0.4)' } : { background: 'var(--bg-button-ghost)' }}>
+                  style={selectedMonth === m ? { background: 'rgba(139,92,246,0.25)', border: '1px solid rgba(139,92,246,0.4)' } : { background: 'rgba(255,255,255,0.04)' }}>
                   {m}
                 </button>
               ))}
@@ -66,12 +66,12 @@ export default function ReportsPage() {
               <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)}
                 className={inputClass} style={inputStyle}
                 onFocus={e => e.target.style.borderColor = 'rgba(139,92,246,0.5)'}
-                onBlur={e => e.target.style.borderColor = 'var(--border-input)'} />
+                onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'} />
               <span className="text-slate-600 text-sm">to</span>
               <input type="date" value={toDate} onChange={e => setToDate(e.target.value)}
                 className={inputClass} style={inputStyle}
                 onFocus={e => e.target.style.borderColor = 'rgba(139,92,246,0.5)'}
-                onBlur={e => e.target.style.borderColor = 'var(--border-input)'} />
+                onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'} />
             </div>
           </div>
         </div>
@@ -95,7 +95,7 @@ export default function ReportsPage() {
               className="flex-1 px-3 py-2.5 rounded-xl text-sm text-slate-200 outline-none"
               style={inputStyle}
               onFocus={e => e.target.style.borderColor = 'rgba(6,182,212,0.5)'}
-              onBlur={e => e.target.style.borderColor = 'var(--border-input)'} />
+              onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'} />
             <button onClick={() => handleDownload('email')} disabled={downloading === 'email'}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 flex-shrink-0"
               style={{ background: done === 'email' ? 'rgba(16,185,129,0.3)' : 'linear-gradient(135deg, #06b6d4, #0891b2)' }}>
@@ -113,9 +113,9 @@ export default function ReportsPage() {
           <div className="space-y-2">
             {['June 2026', 'May 2026', 'April 2026'].map(month => (
               <div key={month} className="flex items-center justify-between px-4 py-3 rounded-xl transition-colors"
-                style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}
-                onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-input)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-surface)'}>
+                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}>
                 <div className="flex items-center gap-3">
                   <FileText size={15} className="text-violet-400" />
                   <div>

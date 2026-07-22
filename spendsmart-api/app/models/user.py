@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Integer, Numeric, String, func
+from sqlalchemy import Boolean, DateTime, Integer, Numeric, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -21,6 +21,10 @@ class User(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     verification_token: Mapped[str | None] = mapped_column(String(64))
+
+    # AI Assistant — BYOK settings (optional; falls back to server key)
+    ai_provider: Mapped[str | None] = mapped_column(String(20))           # gemini | openai | anthropic | groq
+    ai_api_key_encrypted: Mapped[str | None] = mapped_column(Text)        # Fernet-encrypted BYOK key
 
     reset_otp: Mapped[str | None] = mapped_column(String(6))
     reset_otp_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

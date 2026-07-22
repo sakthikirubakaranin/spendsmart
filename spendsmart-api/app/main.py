@@ -10,7 +10,7 @@ from slowapi.util import get_remote_address
 from app.core.config import settings
 from app.core.database import Base, engine
 import app.models  # noqa: F401 — ensures ALL models register with Base.metadata before create_all
-from app.routers import analytics, auth, bank_accounts, budgets, categories, expenses, groups, imports, income, ocr, recurring, users
+from app.routers import ai, analytics, auth, bank_accounts, budgets, categories, expenses, groups, imports, income, ocr, recurring, users
 
 # ── Rate limiter ──────────────────────────────────────────────────────────────
 limiter = Limiter(key_func=get_remote_address, default_limits=["200/minute"])
@@ -60,6 +60,9 @@ async def lifespan(app: FastAPI):
             # custom categories support
             "ALTER TABLE categories ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id) ON DELETE CASCADE",
             "ALTER TABLE categories ADD COLUMN IF NOT EXISTS color VARCHAR(7)",
+            # AI Assistant BYOK columns
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_provider VARCHAR(20)",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_api_key_encrypted TEXT",
         ]
         for sql in _migrations:
             await conn.execute(__import__("sqlalchemy").text(sql))
@@ -106,6 +109,7 @@ app.add_middleware(
 # ── Routers ───────────────────────────────────────────────────────────────────
 API_PREFIX = "/api/v1"
 
+app.include_router(ai.router, prefix=API_PREFIX)
 app.include_router(auth.router, prefix=API_PREFIX)
 app.include_router(bank_accounts.router, prefix=API_PREFIX)
 app.include_router(expenses.router, prefix=API_PREFIX)

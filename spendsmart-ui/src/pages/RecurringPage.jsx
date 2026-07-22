@@ -42,10 +42,10 @@ function fmtDate(d) {
 function Modal({ title, onClose, children }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'var(--overlay-bg)', backdropFilter: 'blur(4px)' }}
+      style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
       onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="w-full max-w-lg rounded-2xl p-6 max-h-[90vh] overflow-y-auto"
-        style={{ background: 'var(--bg-modal)', border: '1px solid rgba(139,92,246,0.25)' }}>
+        style={{ background: '#0f0f1e', border: '1px solid rgba(139,92,246,0.25)' }}>
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-base font-semibold text-slate-100">{title}</h2>
           <button onClick={onClose} className="text-slate-500 hover:text-slate-300 transition-colors">
@@ -69,10 +69,10 @@ function Field({ label, children }) {
   )
 }
 
-const inputClass = "w-full px-4 py-2.5 rounded-xl text-sm text-slate-100 placeholder-slate-400 outline-none transition-all"
-const inputStyle = { background: 'var(--bg-input)', border: '1px solid var(--border-input)' }
+const inputClass = "w-full px-4 py-2.5 rounded-xl text-sm text-slate-100 placeholder-slate-600 outline-none transition-all"
+const inputStyle = { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)' }
 const focusStyle = e => (e.target.style.borderColor = 'rgba(139,92,246,0.5)')
-const blurStyle  = e => (e.target.style.borderColor = 'var(--border-input)')
+const blurStyle  = e => (e.target.style.borderColor = 'rgba(255,255,255,0.09)')
 
 // ── Add / Edit Modal ──────────────────────────────────────────────────────────
 
@@ -206,7 +206,7 @@ function RecurringModal({ initial, categories, onClose, onSaved }) {
                 type="button"
                 onClick={() => setVal('is_active', !form.is_active)}
                 className="w-10 h-5 rounded-full relative transition-colors flex-shrink-0"
-                style={{ background: form.is_active ? 'rgba(139,92,246,0.7)' : 'var(--bg-button-ghost)' }}
+                style={{ background: form.is_active ? 'rgba(139,92,246,0.7)' : 'rgba(255,255,255,0.1)' }}
               >
                 <span className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all"
                   style={{ left: form.is_active ? '22px' : '2px' }} />
@@ -219,7 +219,7 @@ function RecurringModal({ initial, categories, onClose, onSaved }) {
         <div className="pt-2 flex gap-3">
           <button type="button" onClick={onClose}
             className="flex-1 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-slate-200 transition-colors"
-            style={{ background: 'var(--bg-input)', border: '1px solid var(--border-subtle)' }}>
+            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
             Cancel
           </button>
           <button type="submit" disabled={loading}
@@ -247,7 +247,7 @@ function RecurringCard({ rec, onMarkPaid, onEdit, onDelete, onToggle, paying }) 
         opacity: rec.is_active ? 1 : 0.55,
         border: dueStatus?.icon === 'overdue' || dueStatus?.icon === 'today'
           ? '1px solid rgba(244,63,94,0.3)'
-          : '1px solid var(--border-subtle)',
+          : '1px solid rgba(255,255,255,0.06)',
       }}
     >
       {/* Header row */}
@@ -292,7 +292,7 @@ function RecurringCard({ rec, onMarkPaid, onEdit, onDelete, onToggle, paying }) 
       </div>
 
       {/* Action row */}
-      <div className="flex items-center gap-2 pt-1" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+      <div className="flex items-center gap-2 pt-1" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
         {canPay && (
           <button
             onClick={() => onMarkPaid(rec.id)}
@@ -311,7 +311,7 @@ function RecurringCard({ rec, onMarkPaid, onEdit, onDelete, onToggle, paying }) 
           onClick={() => onToggle(rec)}
           title={rec.is_active ? 'Pause' : 'Resume'}
           className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-200 transition-colors"
-          style={{ background: 'var(--bg-input)' }}
+          style={{ background: 'rgba(255,255,255,0.05)' }}
         >
           {rec.is_active ? <Pause size={13} /> : <Play size={13} />}
         </button>
@@ -320,7 +320,7 @@ function RecurringCard({ rec, onMarkPaid, onEdit, onDelete, onToggle, paying }) 
           onClick={() => onEdit(rec)}
           title="Edit"
           className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-violet-400 transition-colors"
-          style={{ background: 'var(--bg-input)' }}
+          style={{ background: 'rgba(255,255,255,0.05)' }}
         >
           <Pencil size={13} />
         </button>
@@ -329,7 +329,7 @@ function RecurringCard({ rec, onMarkPaid, onEdit, onDelete, onToggle, paying }) 
           onClick={() => onDelete(rec.id)}
           title="Delete"
           className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-400 transition-colors"
-          style={{ background: 'var(--bg-input)' }}
+          style={{ background: 'rgba(255,255,255,0.05)' }}
         >
           <Trash2 size={13} />
         </button>
@@ -441,7 +441,7 @@ export default function RecurringPage() {
         {/* Toolbar */}
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-1.5 p-1 rounded-xl"
-            style={{ background: 'var(--bg-button-ghost)', border: '1px solid var(--border-subtle)' }}>
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
             {[
               { id: 'all',    label: 'All' },
               { id: 'active', label: 'Active' },
@@ -452,7 +452,7 @@ export default function RecurringPage() {
                 className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
                 style={filter === id
                   ? { background: 'rgba(139,92,246,0.25)', color: '#c4b5fd' }
-                  : { color: 'var(--text-muted)' }}>
+                  : { color: '#64748b' }}>
                 {label}
               </button>
             ))}

@@ -9,14 +9,16 @@ const GRADIENTS = [
   'linear-gradient(90deg,#ef4444,#f87171)',
 ]
 
+/**
+ * data: array of { slug, name, icon, amount, pct } — from /analytics/by-category
+ */
 export default function TopCategories({ data = [] }) {
   const top = data.filter(c => c.amount > 0).slice(0, 6)
-
   if (top.length === 0) {
     return (
       <div className="glass rounded-2xl p-5">
-        <h3 className="text-sm font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Top Categories</h3>
-        <div className="flex items-center justify-center h-32 text-sm" style={{ color: 'var(--text-muted)' }}>No data yet</div>
+        <h3 className="text-sm font-semibold text-white/80 mb-4">Top Categories</h3>
+        <div className="flex items-center justify-center h-32 text-white/20 text-sm">No data yet</div>
       </div>
     )
   }
@@ -25,21 +27,21 @@ export default function TopCategories({ data = [] }) {
 
   return (
     <div className="glass rounded-2xl p-5">
-      <h3 className="text-sm font-semibold mb-5" style={{ color: 'var(--text-primary)' }}>Top Categories</h3>
+      <h3 className="text-sm font-semibold text-white/80 mb-5">Top Categories</h3>
       <div className="space-y-4">
         {top.map((cat, i) => (
           <div key={cat.slug}>
             <div className="flex items-center justify-between mb-1.5">
               <div className="flex items-center gap-2 min-w-0">
                 <span className="text-base leading-none flex-shrink-0">{cat.icon}</span>
-                <span className="text-sm truncate" style={{ color: 'var(--text-secondary)' }}>{cat.name}</span>
+                <span className="text-sm text-slate-300 truncate">{cat.name}</span>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{cat.pct}%</span>
-                <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{formatINR(cat.amount)}</span>
+                <span className="text-xs text-slate-500">{cat.pct}%</span>
+                <span className="text-sm font-semibold text-white">{formatINR(cat.amount)}</span>
               </div>
             </div>
-            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-surface-hover)' }}>
+            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
               <div
                 className="h-full rounded-full transition-all duration-500"
                 style={{ width: `${(cat.amount / max) * 100}%`, background: GRADIENTS[i % GRADIENTS.length] }}
