@@ -129,11 +129,13 @@ Rules:
 # ── LLM callers ───────────────────────────────────────────────────────────────
 
 async def _gemini(prompt: str, api_key: str) -> dict:
-    import google.generativeai as genai  # already in requirements
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-1.5-flash")
-    response = model.generate_content(prompt)
-    return {"answer": response.text.strip(), "model_used": "Gemini 1.5 Flash"}
+    from google import genai
+    client = genai.Client(api_key=api_key)
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=prompt,
+    )
+    return {"answer": response.text.strip(), "model_used": "Gemini 2.5 Flash"}
 
 
 async def _openai(system: str, context: str, question: str, api_key: str) -> dict:

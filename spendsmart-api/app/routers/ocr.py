@@ -3,12 +3,11 @@ Receipt / bill scanning endpoint using Google Gemini Vision.
 
 POST /ocr/scan-receipt
   - Accepts an image (JPEG/PNG/WEBP/HEIC) or PDF
-  - Extracts merchant, amount, date, items using Gemini 1.5 Flash
+  - Extracts merchant, amount, date, items using Gemini 2.5 Flash
   - Suggests a category using the existing categoriser
   - Returns structured JSON the frontend uses to pre-fill the expense form
 """
 
-import base64
 import json
 import re
 from datetime import date as date_type
@@ -114,20 +113,20 @@ async def scan_receipt(
 
     # ── Call Gemini ──────────────────────────────────────────────────────────
     try:
-        import google.generativeai as genai
-        genai.configure(api_key=settings.GOOGLE_AI_API_KEY)
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        from google import genai
+        from google.genai import types
 
-        b64 = base64.b64encode(content).decode("utf-8")
+        client = genai.Client(api_key=settings.GOOGLE_AI_API_KEY)
 
-        # PDF: use first page only (Gemini supports PDF natively)
+        # PDF: Gemini supports PDF natively; images use their own mime type
         mime = content_type if content_type != "application/pdf" else "application/pdf"
 
-        response = model.generate_content(
-            [
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=[
+                types.Part.from_bytes(data=content, mime_type=mime),
                 _PROMPT,
-                {"mime_type": mime, "data": b64},
-            ]
+            ],
         )
         raw = response.text.strip()
     except Exception as exc:
